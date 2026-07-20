@@ -88,20 +88,26 @@ Vesktop(官方 release,Electron 外殼,不修改)
 
 ### 訊息來源與過濾
 
-- 來源:訂閱 MESSAGE_CREATE 的記憶體滾動緩衝(應用程式啟動後累積),加上 MessageStore 既有快取
-- 不做跨頻道大量歷史抓取(避免異常流量與 rate limit,維持帳號安全)
+- 來源:訂閱 MESSAGE_CREATE 即時接收(Gateway 自動推送,無須主動請求),加上 MessageStore 既有快取
+- 不做跨頻道歷史回填抓取(離線期間的訊息不補撈,避免異常流量與 rate limit,維持帳號安全)
 - 過濾條件(全部須通過才顯示):
   - 頻道未靜音且所屬伺服器未靜音(UserGuildSettingsStore)
   - 不在外掛黑名單
   - 非自己發送的訊息
   - 非被封鎖使用者的訊息
-- 緩衝上限:每頻道 30 則,全域 500 則,超出淘汰最舊
+
+### 訊息儲存與按需讀取
+
+- 通過過濾的訊息精簡後持久化寫入 DataStore(IndexedDB):保留 id、頻道 id、作者名稱與頭像、內容、時間戳、附件摘要、回覆對象摘要;重啟 Vesktop 後仍保留
+- 儲存上限:每頻道 500 則、全域 10000 則,超出時淘汰最舊;寫入採批次(節流)避免高頻 IndexedDB 操作
+- 按需讀取(同 Discord 原生訊息載入方式):開啟動態磚時每張卡片僅讀取最新一頁(30 則)進記憶體,卡片內向下捲動時再分頁載入更舊的訊息
+- 記憶體僅保留畫面所需頁面,其餘留在 IndexedDB;卡片本身採虛擬化渲染,頻道數量多時不影響效能
 
 ### 實作
 
 - 全螢幕視圖以 Modal(FULL size)呈現,跳轉時自動關閉
 - 回覆透過 Discord 內部 MessageActions 附 message_reference 送出
-- DataStore 鍵 `messageBoard`,結構 `{ blacklist: channelId[], lastOpened: timestamp }`;訊息緩衝僅存記憶體,不持久化
+- DataStore 鍵 `messageBoard`,結構 `{ blacklist: channelId[], lastOpened: timestamp }`;訊息本體另以每頻道獨立鍵 `messageBoard.msgs.<channelId>` 儲存,便於分頁讀取與逐頻道淘汰
 
 ## 6. 錯誤處理
 
