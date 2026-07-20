@@ -154,46 +154,11 @@
     white-space: nowrap;
 }
 .vc-vsp-grid .vc-vsp-name { display: none; }
-
-/* 個別使用者音量 slider:預設隱藏,hover 成員時淡入 */
-.vc-vsp-volume {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--background-mod-strong);
-    outline: none;
-    cursor: pointer;
-    opacity: 0;
-    max-height: 0;
-    transition: opacity 0.12s, max-height 0.12s;
-}
-/* list 版:滑桿佔滿剩餘寬度 */
-.vc-vsp-list .vc-vsp-volume {
-    flex: 1 1 auto;
-    min-width: 60px;
-}
-/* grid 版:滑桿置於頭像下方整寬 */
+/* grid 版成員垂直排列,頭像置中 */
 .vc-vsp-grid .vc-vsp-member {
     flex-direction: column;
     align-items: center;
     gap: 4px;
-}
-.vc-vsp-grid .vc-vsp-volume {
-    width: 44px;
-}
-.vc-vsp-member:hover .vc-vsp-volume {
-    opacity: 1;
-    max-height: 16px;
-}
-.vc-vsp-volume::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--white);
-    cursor: pointer;
 }
 
 /* 底部控制列:麥克風開關 + 拒聽 */
@@ -211,8 +176,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border: none;
     border-radius: 8px;
     background: var(--background-mod-subtle);
@@ -220,15 +185,23 @@
     cursor: pointer;
     transition: background 0.12s, color 0.12s;
 }
+/* 控制列圖示統一放大,確保清楚 */
+.vc-vsp-ctrl-btn svg {
+    width: 20px;
+    height: 20px;
+}
 .vc-vsp-ctrl-btn:hover {
     background: var(--background-mod-strong);
 }
-/* 靜音/拒聽啟用中:底色維持深色,僅圖示轉紅(同原生控制列,避免紅底疊紅圖) */
+/* 靜音/拒聽啟用中:紅底 + 白色圖示,對比最強最明顯 */
 .vc-vsp-ctrl-active {
-    background: var(--background-mod-subtle);
-    color: var(--status-danger);
+    background: var(--status-danger);
+    color: #fff;
+}
+.vc-vsp-ctrl-active svg {
+    fill: #fff;
 }
 .vc-vsp-ctrl-active:hover {
-    background: var(--background-mod-strong);
-    color: var(--status-danger);
+    background: var(--status-danger);
+    filter: brightness(1.12);
 }

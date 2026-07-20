@@ -6,14 +6,12 @@
 
 import { findByCodeLazy, findStoreLazy } from "@webpack";
 import {
-    ChannelStore, SelectedChannelStore, UserStore, useState, useStateFromStores
+    ChannelStore, SelectedChannelStore, UserStore, useStateFromStores
 } from "@webpack/common";
 
 import { avatarUrl } from "../_shared/avatar";
 import { settings } from "./settings";
-import {
-    getLocalVolume, isSelfDeaf, isSelfMute, setLocalVolume, toggleSelfDeaf, toggleSelfMute
-} from "./voiceActions";
+import { isSelfDeaf, isSelfMute, toggleSelfDeaf, toggleSelfMute } from "./voiceActions";
 
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 const SpeakingStore = findStoreLazy("SpeakingStore");
@@ -70,24 +68,16 @@ function openMemberMenu(e: React.MouseEvent, userId: string, channelId: string) 
     openNativeUserMenu(domEvent, { user, channel, guildId: (channel as any).guild_id });
 }
 
-function MemberAvatar({ userId, selfMute, selfDeaf, channelId, isSelf }: { userId: string; selfMute: boolean; selfDeaf: boolean; channelId: string; isSelf: boolean; }) {
+function MemberAvatar({ userId, selfMute, selfDeaf, channelId }: { userId: string; selfMute: boolean; selfDeaf: boolean; channelId: string; }) {
     const user = UserStore.getUser(userId);
     const speaking = useStateFromStores([SpeakingStore], () => SpeakingStore.isSpeaking(userId));
     const { showMode } = settings.use(["showMode"]);
-    // 音量為受控狀態:初始讀原生本地音量,拖動時即時套用(僅對他人)
-    const [volume, setVolume] = useState(() => (isSelf ? 100 : Math.round(getLocalVolume(userId))));
 
     if (showMode === "speakingOnly" && !speaking) return null;
 
     const name = (user as any)?.globalName ?? user?.username ?? "使用者";
     const url = user ? avatarUrl(user.id, (user as any).avatar, 64) : null;
     const initial = name.slice(0, 1).toUpperCase();
-
-    function onVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
-        const v = Number(e.target.value);
-        setVolume(v);
-        setLocalVolume(userId, v);
-    }
 
     return (
         <div
@@ -104,18 +94,6 @@ function MemberAvatar({ userId, selfMute, selfDeaf, channelId, isSelf }: { userI
                 )}
             </div>
             <span className="vc-vsp-name">{name}</span>
-            {!isSelf && (
-                <input
-                    className="vc-vsp-volume"
-                    type="range"
-                    min={0}
-                    max={200}
-                    value={volume}
-                    onChange={onVolumeChange}
-                    onClick={e => e.stopPropagation()}
-                    title={`音量 ${volume}%`}
-                />
-            )}
         </div>
     );
 }
@@ -174,7 +152,6 @@ export function useVoiceTitle(): string {
 export function SpeakerList() {
     const { channelId, channelName, members } = useVoiceMembers();
     const { layout } = settings.use(["layout"]);
-    const selfId = UserStore.getCurrentUser()?.id;
 
     if (!channelId || !channelName) {
         return <div className="vc-vsp-empty">目前不在語音頻道</div>;
@@ -183,7 +160,7 @@ export function SpeakerList() {
     return (
         <div className={"vc-vsp-members vc-vsp-" + layout}>
             {members.map(m => (
-                <MemberAvatar key={m.userId} userId={m.userId} selfMute={m.selfMute} selfDeaf={m.selfDeaf} channelId={channelId} isSelf={m.userId === selfId} />
+                <MemberAvatar key={m.userId} userId={m.userId} selfMute={m.selfMute} selfDeaf={m.selfDeaf} channelId={channelId} />
             ))}
         </div>
     );
