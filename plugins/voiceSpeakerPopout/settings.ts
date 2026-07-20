@@ -21,7 +21,8 @@ export const settings = definePluginSettings({
         description: "排列方式",
         options: [
             { label: "橫向網格", value: "grid", default: true },
-            { label: "垂直列表(顯示名稱)", value: "list" }
+            { label: "垂直列表(顯示名稱)", value: "list" },
+            { label: "精簡列表(小頭像 + 名稱,單欄)", value: "compact" }
         ]
     },
     autoOpen: {
