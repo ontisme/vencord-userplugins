@@ -223,12 +223,12 @@
 .vc-vsp-ctrl-btn:hover {
     background: var(--background-mod-strong);
 }
-/* 靜音/拒聽啟用中:紅色高亮 */
+/* 靜音/拒聽啟用中:底色維持深色,僅圖示轉紅(同原生控制列,避免紅底疊紅圖) */
 .vc-vsp-ctrl-active {
-    background: var(--status-danger);
-    color: var(--white);
+    background: var(--background-mod-subtle);
+    color: var(--status-danger);
 }
 .vc-vsp-ctrl-active:hover {
-    background: var(--status-danger);
-    filter: brightness(1.1);
+    background: var(--background-mod-strong);
+    color: var(--status-danger);
 }
