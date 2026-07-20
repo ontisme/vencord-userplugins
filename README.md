@@ -24,7 +24,7 @@ Run in PowerShell:
 iwr -useb https://raw.githubusercontent.com/ontisme/vencord-userplugins/main/install.ps1 | iex
 ```
 
-The script installs Vesktop if needed, downloads the latest release build, extracts it to `%LOCALAPPDATA%\CustomVencord\dist`, and points Vesktop at it. Fully restart Vesktop afterwards, then enable the plugins under Settings -> Plugins.
+The script installs Vesktop if needed, downloads the latest release build, extracts it to `%LOCALAPPDATA%\CustomVencord\dist`, points Vesktop at it, and enables all bundled plugins automatically (closing Vesktop first if it is running). Just start Vesktop afterwards.
 
 Manual install: download `vencord-custom-dist.zip` from the latest release, extract it anywhere, and set Vesktop Settings -> Vesktop -> Developer Options -> Vencord Location to the extracted folder.
 

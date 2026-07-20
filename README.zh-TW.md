@@ -24,7 +24,7 @@
 iwr -useb https://raw.githubusercontent.com/ontisme/vencord-userplugins/main/install.ps1 | iex
 ```
 
-腳本會自動安裝 Vesktop(若未安裝)、下載最新 Release build、解壓到 `%LOCALAPPDATA%\CustomVencord\dist` 並設定 Vesktop 指向它。完成後完全重啟 Vesktop,到設定 -> Plugins 啟用插件。
+腳本會自動安裝 Vesktop(若未安裝)、下載最新 Release build、解壓到 `%LOCALAPPDATA%\CustomVencord\dist`、設定 Vesktop 指向它,並自動啟用所有插件(若 Vesktop 執行中會先關閉)。完成後直接開啟 Vesktop 即可使用。
 
 手動安裝:到最新 Release 下載 `vencord-custom-dist.zip`,解壓後把 Vesktop 設定 -> Vesktop 分頁 -> Developer Options -> Vencord Location 指向解壓資料夾。
 

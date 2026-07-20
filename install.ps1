@@ -43,8 +43,44 @@ if (Test-Path $StatePath) {
 $state | Add-Member -NotePropertyName "vencordDir" -NotePropertyValue $InstallDir -Force
 $state | ConvertTo-Json -Depth 10 | Set-Content $StatePath -Encoding UTF8
 
+Write-Host "==> 自動啟用插件"
+# Vesktop 執行中會在退出時覆寫 settings.json,寫入前先關閉
+$vesktopProc = Get-Process vesktop -ErrorAction SilentlyContinue
+if ($vesktopProc) {
+    Write-Host "    偵測到 Vesktop 執行中,先關閉以套用設定..."
+    $vesktopProc | Stop-Process -Force
+    Start-Sleep -Seconds 2
+}
+
+$Plugins = @("FavoriteChannels", "FavoriteServers", "ChannelTabs", "MessageBoard", "VoiceSpeakerPopout")
+$SettingsPath = Join-Path $env:APPDATA "vesktop\settings\settings.json"
+try {
+    if (Test-Path $SettingsPath) {
+        $settings = Get-Content $SettingsPath -Raw | ConvertFrom-Json
+    } else {
+        New-Item -ItemType Directory -Force -Path (Split-Path $SettingsPath) | Out-Null
+        $settings = [PSCustomObject]@{}
+    }
+    if (-not $settings.PSObject.Properties["plugins"]) {
+        $settings | Add-Member -NotePropertyName "plugins" -NotePropertyValue ([PSCustomObject]@{})
+    }
+    foreach ($name in $Plugins) {
+        $entry = $settings.plugins.PSObject.Properties[$name]
+        if ($entry) {
+            # 保留既有插件設定,只改 enabled
+            $entry.Value | Add-Member -NotePropertyName "enabled" -NotePropertyValue $true -Force
+        } else {
+            $settings.plugins | Add-Member -NotePropertyName $name -NotePropertyValue ([PSCustomObject]@{ enabled = $true })
+        }
+    }
+    # 不帶 BOM 寫出,避免 JSON.parse 失敗
+    [IO.File]::WriteAllText($SettingsPath, ($settings | ConvertTo-Json -Depth 100))
+    Write-Host "    已啟用: $($Plugins -join ' / ')"
+} catch {
+    Write-Warning "    自動啟用失敗($_),請手動到 Vesktop 設定 -> Plugins 啟用。"
+}
+
 Write-Host ""
 Write-Host "==> 安裝完成!"
 Write-Host "    自訂 Vencord 已安裝至: $InstallDir"
-Write-Host "    請「完全關閉並重新開啟」Vesktop 讓變更生效。"
-Write-Host "    到 Vesktop 設定 -> Plugins 啟用 FavoriteChannels / FavoriteServers / ChannelTabs / MessageBoard。"
+Write-Host "    插件已自動啟用,開啟 Vesktop 即可使用。"
