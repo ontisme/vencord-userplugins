@@ -1,0 +1,48 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.9.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build dist
+        run: bash scripts/build-dist.sh
+
+      - name: Package dist
+        run: |
+          cd dist
+          zip -r ../vencord-custom-dist.zip .
+          cd ..
+
+      - name: Publish rolling release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: 最新自訂 Vencord build
+          body: |
+            自動建置的自訂 Vencord dist(含 FavoriteChannels、FavoriteServers、ChannelTabs、MessageBoard)。
+
+            安裝方式見 README。下載 `vencord-custom-dist.zip`,解壓後把 Vesktop 的 Vencord Location 指向解壓資料夾。
+          files: vencord-custom-dist.zip
+          prerelease: false
+          make_latest: true

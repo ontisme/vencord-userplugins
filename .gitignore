@@ -1,1 +1,4 @@
 Vencord/
+.vencord-build/
+dist/
+*.zip

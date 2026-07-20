@@ -1,33 +1,64 @@
 # Discord 自製客戶端
 
-Vesktop + 自建 Vencord。自訂外掛原始碼在 `plugins\`(以 junction 連結至 `Vencord\src\userplugins`,建置時一併編入)。
+Vesktop + 自建 Vencord。四個自訂外掛(FavoriteChannels、FavoriteServers、ChannelTabs、MessageBoard)以 Vencord userplugin 形式打包,發佈到 GitHub Release。
+
+## 一鍵安裝(使用者)
+
+在 PowerShell 執行(先確認 install.ps1 內的 `$Repo` 已填正確的 owner/repo):
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/<owner>/<repo>/main/install.ps1 | iex
+```
+
+腳本會:自動安裝 Vesktop(若未裝)-> 下載最新 Release 的 dist -> 解壓到 `%LOCALAPPDATA%\CustomVencord\dist` -> 設定 Vesktop 指向它。
+完成後**完全重啟 Vesktop**,到設定 -> Plugins 啟用四個外掛即可。
+
+手動安裝:到 Release 下載 `vencord-custom-dist.zip`,解壓後把 Vesktop 設定 -> Vesktop 分頁 -> Developer Options -> Vencord Location 指向解壓資料夾。
+
+## 發佈(維護者)
+
+每次 `git push` 到 main,GitHub Actions(`.github/workflows/build.yml`)會自動建置並更新 `latest` Release 的 dist。無需手動操作。
+
+首次設定:
+1. 建立 GitHub repo,`git remote add origin ...` 後 push
+2. 把 `install.ps1` 內 `$Repo` 改成你的 `owner/repo`
+3. push 後 Actions 自動產出第一個 Release
 
 ## 目錄結構
 
 ```
-plugins\                  junction -> Vencord\src\userplugins(git 經此追蹤外掛)
-Vencord\                  Vencord 原始碼 clone(git 忽略)
-Vencord\src\userplugins   自訂外掛真實檔案(esbuild alias 需在 src 樹內)
+plugins\                  自訂外掛原始碼(git 追蹤)
+scripts\build-dist.sh     建置腳本:clone 鎖定版 Vencord、套入外掛、產出 dist(CI 與本機共用)
+install.ps1               使用者一鍵安裝腳本
+.github\workflows\        GitHub Actions 自動建置
+Vencord\                  本機開發用的 Vencord clone(git 忽略)
 docs\superpowers\         設計規格與實作計畫
 ```
 
-## 建置
+Vencord 版本鎖定在 `scripts\build-dist.sh` 的 `VENCORD_COMMIT`(目前 0a5dfaa,v1.14.16)。升級時更新此值並重測 patch。
+
+## 建置(維護者)
+
+一次性乾淨建置(等同 CI):
 
 ```
-cd Vencord
-pnpm install
-pnpm build          # 或 pnpm watch 持續建置
+bash scripts/build-dist.sh   # 產出 dist/,可直接給 Vesktop 掛載
 ```
 
-需求:Node >= 22、pnpm 11.9.0。
+需求:Node >= 22、pnpm 11.9.0、git、bash。
 
-## Vesktop 掛載自建 build
+## 本機開發迭代
 
-1. 安裝 Vesktop:https://github.com/Vencord/Vesktop/releases (Windows installer)
-2. 開啟 Vesktop -> Settings -> Vesktop 分頁 -> Developer Options
-   -> Vencord Location 填入 `D:\Codes\Projects\Discord\Vencord\dist`
-3. 完全重啟 Vesktop
-4. 驗證:Discord 設定內 Vencord 分頁版本號為 1.14.16 dev,Plugins 清單可搜尋到自訂外掛
+開發時用 junction 讓 `plugins\` 直接對應 Vencord 的 userplugins,配合 `pnpm watch` 即時重建:
+
+```
+cmd /c mklink /J "D:\Codes\Projects\Discord\Vencord\src\userplugins" "D:\Codes\Projects\Discord\plugins"
+cd Vencord && pnpm install && pnpm watch
+```
+
+Vesktop 設定 -> Developer Options -> Vencord Location 指向 `Vencord\dist`,改完在 Discord 內 Ctrl+R 重載。
+
+注意:junction 真實檔案方向為 `plugins\` -> `Vencord\src\userplugins`(esbuild alias 需在 src 樹內)。git checkout / merge 切分支時可能把 junction 換成真實目錄,發生時把檔案移回後重建 junction。
 
 ## 開發迭代
 
