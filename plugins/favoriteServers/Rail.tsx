@@ -8,7 +8,8 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { findStoreLazy } from "@webpack";
 import {
     ContextMenuApi, GuildStore, Menu, NavigationRouter, SelectedChannelStore,
-    SelectedGuildStore, Text, TextInput, useEffect, useReducer, useState, useStateFromStores
+    SelectedGuildStore, Text, TextInput, useEffect, useReducer, UserStore, useState,
+    useStateFromStores
 } from "@webpack/common";
 
 import { guildIconUrl } from "../_shared/avatar";
@@ -19,6 +20,26 @@ import {
 
 const GuildChannelStore = findStoreLazy("GuildChannelStore");
 const GuildReadStateStore = findStoreLazy("GuildReadStateStore");
+const ApplicationStreamingStore = findStoreLazy("ApplicationStreamingStore");
+const VoiceStateStore = findStoreLazy("VoiceStateStore");
+
+// 同步原生狀態:該伺服器是否有人正在直播、自己是否在該伺服器語音中
+function useGuildLiveStatus(guildId: string): { live: boolean; inVoice: boolean; } {
+    return useStateFromStores([ApplicationStreamingStore, VoiceStateStore], () => {
+        let live = false;
+        try {
+            live = ApplicationStreamingStore.getAllActiveStreams().some((s: any) => s.guildId === guildId);
+        } catch { /* store 尚未就緒 */ }
+
+        let inVoice = false;
+        try {
+            const myState = VoiceStateStore.getVoiceStateForUser(UserStore.getCurrentUser()?.id);
+            inVoice = myState?.guildId === guildId;
+        } catch { /* ignore */ }
+
+        return { live, inVoice };
+    });
+}
 
 function navigateToGuild(guildId: string) {
     const last = SelectedChannelStore.getLastSelectedChannelId(guildId);
@@ -48,6 +69,7 @@ function GuildIcon({ guildId, inFolder, folderId }: { guildId: string; inFolder?
             GuildReadStateStore.getMentionCount(guildId)
         ]
     );
+    const { live, inVoice } = useGuildLiveStatus(guildId);
     if (!guild) return null;
     const iconUrl = guildIconUrl(guildId, guild.icon, 48);
 
@@ -55,6 +77,8 @@ function GuildIcon({ guildId, inFolder, folderId }: { guildId: string; inFolder?
         <div
             className="vc-favsrv-item"
             draggable
+            onClick={() => navigateToGuild(guildId)}
+            title={guild.name}
             onDragStart={() => { dragGuildId = guildId; }}
             onDragEnd={() => { dragGuildId = null; }}
             onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("vc-favsrv-dropinto"); }}
@@ -80,15 +104,12 @@ function GuildIcon({ guildId, inFolder, folderId }: { guildId: string; inFolder?
             }}
         >
             {(hasUnread || selected) && <span className={"vc-favsrv-pill" + (selected ? " vc-favsrv-pill-selected" : "")} />}
-            <div
-                className={"vc-favsrv-icon" + (selected ? " vc-favsrv-selected" : "")}
-                onClick={() => navigateToGuild(guildId)}
-                title={guild.name}
-            >
+            <div className={"vc-favsrv-icon" + (selected ? " vc-favsrv-selected" : "") + (inVoice ? " vc-favsrv-invoice" : "")}>
                 {iconUrl
                     ? <img src={iconUrl} alt="" />
                     : <span className="vc-favsrv-initial">{guildInitial(guild.name)}</span>}
             </div>
+            {live && <span className="vc-favsrv-live">LIVE</span>}
             {mentions > 0 && <span className="vc-favsrv-badge">{mentions > 99 ? "99+" : mentions}</span>}
         </div>
     );
@@ -126,12 +147,15 @@ function Folder({ folder }: { folder: Extract<RailItem, { type: "folder"; }>; })
                 {folder.expanded
                     ? <FolderOpenIcon />
                     : <div className="vc-favsrv-folder-preview">
-                        {folder.guildIds.slice(0, 4).map(id => {
+                        {/* 固定 2x2 四格,仿原生:不足補空格,超過只顯示前 4 個 */}
+                        {Array.from({ length: 4 }, (_, i) => {
+                            const id = folder.guildIds[i];
+                            if (!id) return <span key={i} className="vc-favsrv-mini-empty" />;
                             const g = GuildStore.getGuild(id);
                             const url = g ? guildIconUrl(id, g.icon, 16) : null;
                             return url
-                                ? <img key={id} src={url} alt="" />
-                                : <span key={id} className="vc-favsrv-mini-initial">{g ? guildInitial(g.name) : "?"}</span>;
+                                ? <img key={i} src={url} alt="" />
+                                : <span key={i} className="vc-favsrv-mini-initial">{g ? guildInitial(g.name) : "?"}</span>;
                         })}
                     </div>}
             </div>

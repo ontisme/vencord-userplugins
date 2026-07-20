@@ -34,12 +34,15 @@
     opacity: 0.75;
 }
 
+/* 整個正方形皆可點(即使圖示為圓形,周圍空白也接受點擊) */
 .vc-favsrv-item {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 100%;
+    height: 48px;
+    cursor: pointer;
 }
 
 /* 左側未讀/選中指示條(仿原生) */
@@ -59,14 +62,15 @@
     height: 48px;
     border-radius: 24px;
     overflow: hidden;
-    cursor: pointer;
     background: var(--background-surface-higher);
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
     transition: border-radius 0.15s, background 0.15s;
 }
-.vc-favsrv-icon:hover,
+/* hover 觸發改由整個 item(正方形)驅動,讓空白處 hover 也有回饋 */
+.vc-favsrv-item:hover .vc-favsrv-icon,
 .vc-favsrv-selected {
     border-radius: 16px;
     background: var(--brand-500);
@@ -97,6 +101,29 @@
     box-sizing: content-box;
 }
 
+/* 直播中:紅色 LIVE 徽章(仿原生) */
+.vc-favsrv-live {
+    position: absolute;
+    left: 50%;
+    bottom: -3px;
+    transform: translateX(-50%);
+    background: var(--status-danger);
+    color: var(--white);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    padding: 2px 5px;
+    border-radius: 5px;
+    border: 2px solid var(--background-base-lowest);
+    pointer-events: none;
+}
+
+/* 自己在該伺服器語音中:綠色外框 */
+.vc-favsrv-invoice {
+    box-shadow: 0 0 0 2px var(--background-base-lowest), 0 0 0 4px #23a55a;
+}
+
 /* 拖曳放置目標高亮 */
 .vc-favsrv-dropinto .vc-favsrv-icon,
 .vc-favsrv-dropinto.vc-favsrv-folder-head {
@@ -117,27 +144,35 @@
     cursor: pointer;
     color: var(--brand-500);
 }
+/* 固定 2x2 四格縮圖,每格固定 16px(仿原生資料夾) */
 .vc-favsrv-folder-preview {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2px;
-    padding: 6px;
+    grid-template-columns: 16px 16px;
+    grid-template-rows: 16px 16px;
+    gap: 3px;
+    place-content: center;
     width: 100%;
     height: 100%;
     box-sizing: border-box;
 }
 .vc-favsrv-folder-preview img,
 .vc-favsrv-mini-initial {
-    width: 100%;
-    height: 100%;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     object-fit: cover;
-    font-size: 8px;
+    font-size: 7px;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     background: var(--background-base-low);
     color: var(--text-muted);
+}
+/* 空格:維持格位但不顯示內容,確保永遠 2x2 對齊 */
+.vc-favsrv-mini-empty {
+    width: 16px;
+    height: 16px;
 }
 .vc-favsrv-folder-body {
     display: flex;
