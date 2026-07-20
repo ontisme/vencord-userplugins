@@ -5,20 +5,21 @@
  */
 
 import * as DataStore from "@api/DataStore";
-import { ChannelRouter, ChannelStore } from "@webpack/common";
+import { ChannelStore, GuildStore, NavigationRouter, SelectedChannelStore } from "@webpack/common";
 
 import { createListenerRegistry } from "../_shared/listeners";
 
-const KEY = "ChannelTabs_data";
+const KEY = "ChannelTabs_guildTabs";
 
+// 分頁以伺服器為單位;"@me" 代表私訊區。順序即使用者排序。
 interface TabsData {
     tabs: string[];
     activeTab: string | null;
 }
 
 let state: TabsData = { tabs: [], activeTab: null };
-let persistTimer: ReturnType<typeof setTimeout> | null = null;
 const { subscribe, emit } = createListenerRegistry();
+let persistTimer: ReturnType<typeof setTimeout> | null = null;
 
 export { subscribe };
 
@@ -41,29 +42,28 @@ export function getActiveTab(): string | null {
 export async function loadTabs(): Promise<void> {
     const stored = await DataStore.get<TabsData>(KEY);
     if (stored && Array.isArray(stored.tabs)) {
-        state = {
-            tabs: stored.tabs,
-            activeTab: stored.activeTab ?? null
-        };
+        state = { tabs: stored.tabs, activeTab: stored.activeTab ?? null };
     }
     emit();
 }
 
-export function openTab(channelId: string): void {
-    if (!state.tabs.includes(channelId)) state.tabs = [...state.tabs, channelId];
-    state.activeTab = channelId;
+// 進到某個伺服器(或私訊)時,確保有對應分頁並標記為 active。
+export function openGuildTab(guildId: string): void {
+    const key = guildId || "@me";
+    if (!state.tabs.includes(key)) state.tabs = [...state.tabs, key];
+    state.activeTab = key;
     emit();
     persistSoon();
 }
 
-export function closeTab(channelId: string): void {
-    const idx = state.tabs.indexOf(channelId);
+export function closeTab(guildId: string): void {
+    const idx = state.tabs.indexOf(guildId);
     if (idx === -1) return;
-    state.tabs = state.tabs.filter(id => id !== channelId);
-    if (state.activeTab === channelId) {
+    state.tabs = state.tabs.filter(id => id !== guildId);
+    if (state.activeTab === guildId) {
         const next = state.tabs[Math.min(idx, state.tabs.length - 1)] ?? null;
         state.activeTab = next;
-        if (next) ChannelRouter.transitionToChannel(next);
+        if (next) navigateToTab(next);
     }
     emit();
     persistSoon();
@@ -79,14 +79,23 @@ export function moveTab(fromIndex: number, toIndex: number): void {
     persistSoon();
 }
 
-export function restoreLastChannel(): void {
-    if (state.activeTab && ChannelStore.getChannel(state.activeTab)) {
-        ChannelRouter.transitionToChannel(state.activeTab);
+// 點分頁:回到該伺服器最後停留的頻道;私訊區直接回 @me。
+export function navigateToTab(guildId: string): void {
+    if (guildId === "@me") {
+        const lastDm = SelectedChannelStore.getLastSelectedChannelId("@me");
+        NavigationRouter.transitionTo(lastDm ? `/channels/@me/${lastDm}` : "/channels/@me");
+        return;
+    }
+    const lastChannel = SelectedChannelStore.getLastSelectedChannelId(guildId);
+    if (lastChannel && ChannelStore.getChannel(lastChannel)) {
+        NavigationRouter.transitionToGuild(guildId, lastChannel);
+    } else {
+        NavigationRouter.transitionToGuild(guildId);
     }
 }
 
 export function pruneInvalidTabs(): void {
-    const valid = state.tabs.filter(id => ChannelStore.getChannel(id) != null);
+    const valid = state.tabs.filter(id => id === "@me" || GuildStore.getGuild(id) != null);
     if (valid.length !== state.tabs.length) {
         state.tabs = valid;
         if (state.activeTab && !valid.includes(state.activeTab)) state.activeTab = valid[0] ?? null;

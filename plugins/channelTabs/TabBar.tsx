@@ -5,32 +5,55 @@
  */
 
 import ErrorBoundary from "@components/ErrorBoundary";
+import { findStoreLazy } from "@webpack";
 import {
-    ChannelRouter, ChannelStore, ReadStateStore, useEffect, useReducer,
-    UserStore, useStateFromStores
+    GuildStore, SelectedGuildStore, useEffect, useReducer, useStateFromStores
 } from "@webpack/common";
 
-import { closeTab, getActiveTab, getTabs, moveTab, subscribe } from "./tabs";
+import { closeTab, getActiveTab, getTabs, moveTab, navigateToTab, subscribe } from "./tabs";
 
-function tabLabel(channelId: string): string {
-    const channel = ChannelStore.getChannel(channelId);
-    if (!channel) return "未知頻道";
-    if (channel.guild_id) return "#" + channel.name;
-    if (channel.name) return channel.name;
-    const userId = (channel as any).recipients?.[0];
-    const user = userId ? UserStore.getUser(userId) : null;
-    return (user as any)?.globalName ?? user?.username ?? "私訊";
+const GuildReadStateStore = findStoreLazy("GuildReadStateStore");
+
+interface TabInfo {
+    label: string;
+    iconUrl: string | null;
+    initial: string;
 }
 
-function Tab({ channelId, index }: { channelId: string; index: number; }) {
-    const [active, hasUnread] = useStateFromStores([ReadStateStore], () => [
-        getActiveTab() === channelId,
-        ReadStateStore.hasUnread(channelId)
-    ]);
+function guildIconUrl(guildId: string, icon: string, size = 32): string {
+    const ext = icon.startsWith("a_") ? "gif" : "webp";
+    return `https://cdn.discordapp.com/icons/${guildId}/${icon}.${ext}?size=${size}`;
+}
+
+function tabInfo(tabId: string): TabInfo {
+    if (tabId === "@me") return { label: "私訊", iconUrl: null, initial: "@" };
+    const guild = GuildStore.getGuild(tabId);
+    if (!guild) return { label: "未知伺服器", iconUrl: null, initial: "?" };
+    return {
+        label: guild.name,
+        iconUrl: guild.icon ? guildIconUrl(tabId, guild.icon) : null,
+        initial: guild.name.slice(0, 1).toUpperCase()
+    };
+}
+
+function Tab({ tabId, index }: { tabId: string; index: number; }) {
+    const active = useStateFromStores([SelectedGuildStore], () =>
+        getActiveTab() === tabId
+    );
+    const [hasUnread, mentionCount] = useStateFromStores([GuildReadStateStore], () =>
+        tabId === "@me"
+            ? [false, 0]
+            : [GuildReadStateStore.hasUnread(tabId), GuildReadStateStore.getTotalMentionCount(tabId)]
+    );
+    const { label, iconUrl, initial } = tabInfo(tabId);
 
     return (
         <div
-            className={"vc-chtabs-tab" + (active ? " vc-chtabs-active" : "") + (hasUnread ? " vc-chtabs-unread" : "")}
+            className={
+                "vc-chtabs-tab"
+                + (active ? " vc-chtabs-active" : "")
+                + (hasUnread && !active ? " vc-chtabs-unread" : "")
+            }
             draggable
             onDragStart={e => e.dataTransfer.setData("text/vc-chtabs", String(index))}
             onDragOver={e => e.preventDefault()}
@@ -39,15 +62,24 @@ function Tab({ channelId, index }: { channelId: string; index: number; }) {
                 const from = Number(e.dataTransfer.getData("text/vc-chtabs"));
                 if (!Number.isNaN(from)) moveTab(from, index);
             }}
-            onClick={() => ChannelRouter.transitionToChannel(channelId)}
-            onAuxClick={e => { if (e.button === 1) closeTab(channelId); }}
+            onClick={() => navigateToTab(tabId)}
+            onAuxClick={e => { if (e.button === 1) closeTab(tabId); }}
         >
-            <span className="vc-chtabs-label">{tabLabel(channelId)}</span>
+            {iconUrl
+                ? <img className="vc-chtabs-icon" src={iconUrl} alt="" />
+                : <span className="vc-chtabs-icon vc-chtabs-icon-fallback">{initial}</span>}
+            <span className="vc-chtabs-label">{label}</span>
+            {mentionCount > 0 && <span className="vc-chtabs-mention">{mentionCount > 99 ? "99+" : mentionCount}</span>}
+            {hasUnread && !active && mentionCount === 0 && <span className="vc-chtabs-dot" />}
             <span
                 className="vc-chtabs-close"
-                onClick={e => { e.stopPropagation(); closeTab(channelId); }}
+                role="button"
+                aria-label="關閉分頁"
+                onClick={e => { e.stopPropagation(); closeTab(tabId); }}
             >
-                {"×"}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.3 5.71 12 12.01l-6.3-6.3-1.41 1.41 6.3 6.3-6.3 6.3 1.41 1.41 6.3-6.3 6.3 6.3 1.41-1.41-6.3-6.3 6.3-6.3z" />
+                </svg>
             </span>
         </div>
     );
@@ -62,7 +94,7 @@ function TabBarInner() {
 
     return (
         <div className="vc-chtabs-bar">
-            {tabs.map((id, i) => <Tab key={id} channelId={id} index={i} />)}
+            {tabs.map((id, i) => <Tab key={id} tabId={id} index={i} />)}
         </div>
     );
 }

@@ -30,6 +30,17 @@ export default definePlugin({
     description: "右鍵將頻道加入最愛,最愛頻道置頂顯示於該伺服器頻道列表",
     authors: [{ name: "ontisme", id: 0n }],
 
+    patches: [
+        {
+            // 伺服器頻道列表(虛擬化 AutoSizer);將列表包進 fragment,前方插入最愛置頂區
+            find: '"guild-channels")',
+            replacement: {
+                match: /return(\(0,(\i)\.jsx\)\(\i\.sk,\{children:\i=>\(0,\i\.jsx\)\(\i\.\i,\{[\s\S]*?"guild-channels"\)\}\))/,
+                replace: "return(0,$2.jsxs)($2.Fragment,{children:[$self.renderFavorites(),$1]})"
+            }
+        }
+    ],
+
     contextMenus: {
         "channel-context": channelContextPatch
     },
@@ -40,8 +51,6 @@ export default definePlugin({
         }
     },
 
-    // 置頂區注入點:待 runtime 錨點探勘後在此加入 patches(見計畫 Task 3 Step 3),
-    // patch 的 replace 呼叫 $self.renderFavorites()
     renderFavorites() {
         return <FavoritesSection />;
     },

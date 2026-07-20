@@ -7,57 +7,44 @@
 import "./styles.css";
 
 import definePlugin from "@utils/types";
-import { PropsWithChildren } from "react";
 
 import { TabBar } from "./TabBar";
-import { loadTabs, openTab, pruneInvalidTabs, restoreLastChannel } from "./tabs";
-
-let restored = false;
+import { loadTabs, openGuildTab, pruneInvalidTabs } from "./tabs";
 
 export default definePlugin({
     name: "ChannelTabs",
-    description: "瀏覽器式頻道分頁,開過的頻道成為分頁,重啟後還原",
+    description: "伺服器分頁列:標題列下方一整列,每個進過的伺服器一個分頁(icon + 名稱),點擊回到該伺服器最後停留的頻道,重啟後還原",
     authors: [{ name: "ontisme", id: 0n }],
 
     patches: [
         {
-            // 標題列模組(與 vencordToolbox 相同的 find);分頁列插在 leading 區,
-            // match 形狀比照 trailing 區已驗證的寫法,若 Discord 更新導致失效僅記警告
-            find: '?"BACK_FORWARD_NAVIGATION":',
+            // app 主佈局(base__5e434):在標題列之後插入分頁列,由 CSS grid 覆寫排到標題列下方整列
+            find: /"data-fullscreen":\i,children:\[!\i&&/,
             replacement: {
-                match: /(leading:.{0,50}?)\i\.Fragment,(?=\{children:\[)/,
-                replace: "$1$self.LeadingWrapper,"
+                match: /(?<=\.\i,"data-fullscreen":\i,children:\[!\i&&\(0,\i\.jsx\)\(\i,\{\}\),)/,
+                replace: "$self.renderStrip(),"
             }
         }
     ],
 
-    LeadingWrapper({ children }: PropsWithChildren) {
-        return (
-            <>
-                {children}
-                <TabBar />
-            </>
-        );
+    renderStrip() {
+        return <TabBar />;
     },
 
     flux: {
-        CHANNEL_SELECT({ channelId }: { channelId: string | null; }) {
-            if (channelId) openTab(channelId);
+        // 切換頻道時,以該頻道所屬伺服器(或私訊區)作為分頁鍵
+        CHANNEL_SELECT({ guildId }: { guildId: string | null; }) {
+            openGuildTab(guildId ?? "@me");
         },
         CONNECTION_OPEN() {
             pruneInvalidTabs();
-            if (!restored) {
-                restored = true;
-                restoreLastChannel();
-            }
         },
-        CHANNEL_DELETE() {
+        GUILD_DELETE() {
             pruneInvalidTabs();
         }
     },
 
     async start() {
-        restored = false;
         await loadTabs();
     }
 });

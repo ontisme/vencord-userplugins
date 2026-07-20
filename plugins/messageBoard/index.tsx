@@ -6,65 +6,53 @@
 
 import "./styles.css";
 
-import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
-import { findComponentByCodeLazy } from "@webpack";
-import { useEffect, useReducer } from "@webpack/common";
-import { PropsWithChildren } from "react";
 
-import { openBoard } from "./BoardModal";
-import { flush, getNewActivityCount, handleMessage, init, stopFlushing, subscribe } from "./storage";
+import { Board } from "./Board";
+import { flush, getNewActivityCount, handleMessage, init, stopFlushing } from "./storage";
 
-const HeaderBarIcon = findComponentByCodeLazy(".HEADER_BAR_BADGE_BOTTOM,", 'position:"bottom"');
-
-function BoardIcon() {
-    return (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4 4h7v7H4V4zm9 0h7v4h-7V4zm0 6h7v10h-7V10zM4 13h7v7H4v-7z" />
-        </svg>
-    );
-}
-
-function BoardButton() {
-    const [, forceUpdate] = useReducer(x => x + 1, 0);
-    useEffect(() => subscribe(forceUpdate), []);
-    const count = getNewActivityCount();
-
-    return (
-        <HeaderBarIcon
-            className="vc-msgboard-btn"
-            onClick={() => openBoard()}
-            tooltip={count > 0 ? `訊息動態磚(${count} 個頻道有新訊息)` : "訊息動態磚"}
-            icon={BoardIcon}
-        />
-    );
-}
+export const BOARD_SECTION = "VC_MESSAGE_BOARD";
 
 export default definePlugin({
     name: "MessageBoard",
-    description: "訊息動態磚:未靜音頻道的即時訊息牆,可快速回覆與跳轉",
+    description: "訊息動態磚:好友頁新增動態磚分頁,顯示未靜音頻道的即時訊息牆,可快速回覆與跳轉",
     authors: [{ name: "ontisme", id: 0n }],
 
     patches: [
         {
-            // 標題列 trailing 區,與 vencordToolbox 相同的已驗證錨點與 match 形狀
-            find: '?"BACK_FORWARD_NAVIGATION":',
-            replacement: {
-                match: /(trailing:.{0,50}?)\i\.Fragment,(?=\{children:\[)/,
-                replace: "$1$self.TrailingWrapper,"
-            }
+            // 好友頁模組(唯一含 "pendingFriends" 的模組)
+            find: '"pendingFriends"',
+            replacement: [
+                {
+                    // 分頁列:在「新增好友」分頁前插入「動態磚」分頁
+                    match: /(?=\{id:\i\.\i\.ADD_FRIEND,show:!0)/,
+                    replace: "$self.makeTab(),"
+                },
+                {
+                    // 內容區:選中動態磚分頁時渲染看板
+                    match: /(\i)=(\i)===(\i\.\i\.ADD_FRIEND)\?/,
+                    replace: `$1=$2==="${BOARD_SECTION}"?$self.renderBoard():$2===$3?`
+                }
+            ]
         }
     ],
 
-    TrailingWrapper({ children }: PropsWithChildren) {
-        return (
-            <>
-                {children}
-                <ErrorBoundary key="vc-msgboard" noop>
-                    <BoardButton />
-                </ErrorBoundary>
-            </>
-        );
+    makeTab() {
+        const count = getNewActivityCount();
+        return {
+            id: BOARD_SECTION,
+            show: true,
+            content: (
+                <span>
+                    動態磚
+                    {count > 0 && <span className="vc-msgboard-tab-badge">{count > 99 ? "99+" : count}</span>}
+                </span>
+            )
+        };
+    },
+
+    renderBoard() {
+        return <Board />;
     },
 
     flux: {
@@ -74,7 +62,6 @@ export default definePlugin({
         }
     },
 
-    openBoard,
     flushNow: flush,
 
     async start() {

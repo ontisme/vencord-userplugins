@@ -1,35 +1,119 @@
-.vc-chtabs-bar {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    overflow-x: auto;
-    scrollbar-width: none;
-    max-width: 60vw;
-    min-width: 0;
-    -webkit-app-region: no-drag;
+/* 在 base grid 的標題列與內容之間插入一列給分頁,跨滿三欄 */
+[class*="base_"]:has(> .vc-chtabs-bar) {
+    grid-template-rows:
+        [top] auto [titleBarEnd]
+        auto [tabsEnd]
+        [noticeStart] min-content [noticeEnd]
+        [contentStart] 1fr [end] !important;
+    grid-template-areas:
+        "titleBar titleBar titleBar"
+        "tabs tabs tabs"
+        "guildsList notice notice"
+        "guildsList channelsList page" !important;
 }
-.vc-chtabs-bar::-webkit-scrollbar { display: none; }
-.vc-chtabs-tab {
+
+.vc-chtabs-bar {
+    grid-area: tabs;
     display: flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 6px 2px 10px;
-    border-radius: 6px;
-    font-size: 12px;
-    color: var(--interactive-normal);
-    background: var(--background-secondary);
+    overflow-x: auto;
+    scrollbar-width: none;
+    min-width: 0;
+    width: 100%;
+    height: 40px;
+    box-sizing: border-box;
+    padding: 0 8px;
+    background: var(--background-base-low);
+    border-bottom: 1px solid var(--border-subtle);
+    -webkit-app-region: no-drag;
+}
+.vc-chtabs-bar::-webkit-scrollbar { display: none; }
+
+.vc-chtabs-tab {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+    background: var(--background-surface-higher);
     cursor: pointer;
     white-space: nowrap;
     user-select: none;
+    flex-shrink: 0;
+    max-width: 200px;
+    transition: background 0.12s, color 0.12s;
 }
-.vc-chtabs-tab:hover { background: var(--background-modifier-hover); }
-.vc-chtabs-active { background: var(--background-modifier-selected); color: var(--interactive-active); }
-.vc-chtabs-unread { font-weight: 700; color: var(--interactive-active); }
-.vc-chtabs-label { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.vc-chtabs-tab:hover {
+    background: var(--background-surface-highest);
+    color: var(--text-default);
+}
+.vc-chtabs-active {
+    background: color-mix(in oklab, var(--brand-500) 26%, var(--background-surface-highest));
+    color: var(--white);
+    font-weight: 600;
+}
+.vc-chtabs-unread { color: var(--text-default); font-weight: 600; }
+
+.vc-chtabs-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.vc-chtabs-icon-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--background-base-lowest);
+    color: var(--text-default);
+}
+
+.vc-chtabs-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.vc-chtabs-mention {
+    background: var(--status-danger);
+    color: var(--white);
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    flex-shrink: 0;
+}
+.vc-chtabs-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--text-default);
+    flex-shrink: 0;
+}
+
 .vc-chtabs-close {
-    opacity: 0.5;
-    padding: 0 3px;
-    border-radius: 3px;
-    line-height: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    color: var(--text-muted);
+    flex-shrink: 0;
 }
-.vc-chtabs-close:hover { opacity: 1; background: var(--background-modifier-hover); }
+.vc-chtabs-tab:hover .vc-chtabs-close { display: flex; }
+.vc-chtabs-close:hover {
+    background: var(--background-mod-strong);
+    color: var(--text-default);
+}
