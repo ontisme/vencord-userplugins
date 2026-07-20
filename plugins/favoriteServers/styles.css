@@ -1,0 +1,170 @@
+/* 最愛伺服器列:固定於視窗最左的獨立垂直列,並把 app 內容整體右移讓出空間 */
+:root {
+    --vc-favsrv-width: 72px;
+}
+
+[class*="base_"]:has(> .vc-favsrv-rail) {
+    padding-left: var(--vc-favsrv-width);
+}
+
+.vc-favsrv-rail {
+    position: fixed;
+    left: 0;
+    top: 32px;
+    bottom: 0;
+    width: var(--vc-favsrv-width);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 0 12px;
+    background: var(--background-base-lowest);
+    border-right: 1px solid var(--border-subtle);
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+.vc-favsrv-rail::-webkit-scrollbar { display: none; }
+
+.vc-favsrv-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding-bottom: 4px;
+    opacity: 0.75;
+}
+
+.vc-favsrv-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+/* 左側未讀/選中指示條(仿原生) */
+.vc-favsrv-pill {
+    position: absolute;
+    left: 0;
+    width: 4px;
+    height: 8px;
+    border-radius: 0 4px 4px 0;
+    background: var(--text-default);
+    transition: height 0.15s;
+}
+.vc-favsrv-pill-selected { height: 40px; }
+
+.vc-favsrv-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+    overflow: hidden;
+    cursor: pointer;
+    background: var(--background-surface-higher);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-radius 0.15s, background 0.15s;
+}
+.vc-favsrv-icon:hover,
+.vc-favsrv-selected {
+    border-radius: 16px;
+    background: var(--brand-500);
+}
+.vc-favsrv-icon img { width: 100%; height: 100%; object-fit: cover; }
+.vc-favsrv-initial {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-default);
+}
+
+.vc-favsrv-badge {
+    position: absolute;
+    right: 8px;
+    bottom: -2px;
+    background: var(--status-danger);
+    color: var(--white);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 3px solid var(--background-base-lowest);
+    box-sizing: content-box;
+}
+
+/* 拖曳放置目標高亮 */
+.vc-favsrv-dropinto .vc-favsrv-icon,
+.vc-favsrv-dropinto.vc-favsrv-folder-head {
+    outline: 2px solid var(--brand-500);
+    outline-offset: 2px;
+}
+
+/* 資料夾 */
+.vc-favsrv-folder { width: 100%; display: flex; flex-direction: column; align-items: center; }
+.vc-favsrv-folder-head {
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: var(--background-surface-higher);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--brand-500);
+}
+.vc-favsrv-folder-preview {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    padding: 6px;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+}
+.vc-favsrv-folder-preview img,
+.vc-favsrv-mini-initial {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background-base-low);
+    color: var(--text-muted);
+}
+.vc-favsrv-folder-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+    margin: 2px 6px;
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--brand-500) 12%, transparent);
+    width: calc(100% - 12px);
+}
+.vc-favsrv-folder-body .vc-favsrv-icon { width: 40px; height: 40px; border-radius: 20px; }
+.vc-favsrv-folder-body .vc-favsrv-icon:hover { border-radius: 14px; }
+
+.vc-favsrv-rename-box {
+    width: calc(100% - 8px);
+    padding: 2px 4px;
+}
+
+/* 排序放置槽:分頁間細縫,拖曳時高亮 */
+.vc-favsrv-slot {
+    height: 4px;
+    width: 100%;
+}
+.vc-favsrv-slot-active {
+    height: 4px;
+    background: var(--brand-500);
+    border-radius: 2px;
+}
