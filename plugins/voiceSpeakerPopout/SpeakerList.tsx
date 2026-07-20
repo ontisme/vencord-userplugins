@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { findByCodeLazy, findStoreLazy } from "@webpack";
+import { extractAndLoadChunks, findModuleId, findStoreLazy, wreq } from "@webpack";
 import {
-    ChannelStore, SelectedChannelStore, UserStore, useStateFromStores
+    ChannelStore, ContextMenuApi, SelectedChannelStore, UserStore, useStateFromStores
 } from "@webpack/common";
 
 import { avatarUrl } from "../_shared/avatar";
@@ -16,10 +16,13 @@ import { isSelfDeaf, isSelfMute, toggleSelfDeaf, toggleSelfMute } from "./voiceA
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 const SpeakingStore = findStoreLazy("SpeakingStore");
 const MediaEngineStore = findStoreLazy("MediaEngineStore");
-// Discord 原生「語音成員」右鍵選單 opener(GuildVoiceUserContextMenu),含使用者音量滑桿、伺服器端靜音/拒聽、
-// 個人資料、身分組等,依權限動態顯示。簽名:opener(event, user, channel, minimalContextMenu?, onInteraction?)。
-// 識別字串 "GuildVoiceUserContextMenu" 於 bundle 中唯一。
-const openVoiceUserMenu: any = findByCodeLazy("GuildVoiceUserContextMenu", "getGuildId");
+// 原生「語音成員」右鍵選單元件(GuildChannelUserContextMenu)位於 lazy chunk。
+// 以側欄語音成員列容器的 lazy import 載入 chunk;錨點須用連續字串
+// showMediaItems:!0,showStageChannelItems: 才唯一(單獨 showMediaItems:!0 有三個模組命中)。
+// 每次右鍵都呼叫 extractAndLoadChunks(非 Lazy 版):已載入時近乎零成本,且失敗不會被 makeLazy 永久快取。
+// 元件被 HOC 包裹,findComponentByCode 對不上 toString,須用 findModuleId + wreq 直取 default export。
+const VOICE_USER_MENU_CONTAINER_CODE = "showMediaItems:!0,showStageChannelItems:";
+const VOICE_USER_MENU_CODE = 'location:"GuildChannelUserContextMenu"';
 
 interface Member {
     userId: string;
@@ -59,15 +62,28 @@ function DeafIcon() {
 }
 
 function openMemberMenu(e: React.MouseEvent, userId: string, channelId: string) {
-    if (!openVoiceUserMenu) return;
     e.preventDefault();
     const user = UserStore.getUser(userId);
     const channel = ChannelStore.getChannel(channelId);
     if (!user || !channel) return;
-    // 位置參數:opener(event, user, channel, minimalContextMenu?, onInteraction?)。
-    // event 需原生 MouseEvent 定位;onInteraction 為 analytics 回呼,傳 noop。
     const domEvent = e.nativeEvent ?? e;
-    openVoiceUserMenu(domEvent, user, channel, undefined, () => { });
+    ContextMenuApi.openContextMenuLazy(domEvent, async () => {
+        await extractAndLoadChunks([VOICE_USER_MENU_CONTAINER_CODE]);
+        const id = findModuleId(VOICE_USER_MENU_CODE);
+        if (id == null) return () => null;
+        const VoiceUserMenu = wreq(id).default;
+        // showMediaItems 開啟本機媒體項目(使用者音量滑桿、對我靜音等),與原生語音成員列一致
+        return props => (
+            <VoiceUserMenu
+                {...props}
+                user={user}
+                channel={channel}
+                guildId={channel.guild_id}
+                showMediaItems={true}
+                showStageChannelItems={(channel as any).isGuildStageVoice()}
+            />
+        );
+    });
 }
 
 function MemberAvatar({ userId, selfMute, selfDeaf, channelId }: { userId: string; selfMute: boolean; selfDeaf: boolean; channelId: string; }) {
