@@ -61,3 +61,6 @@ cmd /c mklink /J "D:\Codes\Projects\Discord\plugins" "D:\Codes\Projects\Discord\
 ```
 
 注意方向:真實檔案在 Vencord\src\userplugins,`plugins\` 只是入口。
+
+注意:git checkout / merge 切換分支時可能把 `plugins\` junction 換成真實目錄。
+若發生,把檔案移回 `Vencord\src\userplugins` 後依上述指令重建 junction。
