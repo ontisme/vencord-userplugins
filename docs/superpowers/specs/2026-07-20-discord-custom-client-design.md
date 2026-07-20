@@ -58,7 +58,7 @@ Vesktop(官方 release,Electron 外殼,不修改)
 
 ### 互動
 
-- 聊天區上方顯示分頁列
+- 應用程式標題列(視窗最上方一排,如瀏覽器分頁位置)顯示分頁列
 - 切換到任何頻道(含私訊、群組)時,無對應分頁則自動新增;已有則點亮
 - 分頁可點擊切換、X 或滑鼠中鍵關閉、拖曳排序
 - 分頁顯示頻道名稱(私訊顯示對方名稱)與未讀狀態
@@ -76,7 +76,7 @@ Vesktop(官方 release,Electron 外殼,不修改)
 
 ### 互動
 
-- 首頁(私訊)側欄頂部新增「動態磚」入口按鈕,點擊開啟全螢幕視圖
+- 應用程式標題列工具區新增「動態磚」入口按鈕,點擊開啟全螢幕視圖(Modal size xxl)
 - 版面為頻道卡片網格:每張卡片代表一個有新訊息的未靜音頻道,卡片內列出該頻道最近訊息(新在上),卡片依最新活動時間排序
 - 訊息互動:
   - 點擊訊息:卡片內展開快速回覆輸入框,Enter 以「回覆」形式送出
@@ -105,7 +105,7 @@ Vesktop(官方 release,Electron 外殼,不修改)
 
 ### 實作
 
-- 全螢幕視圖以 Modal(FULL size)呈現,跳轉時自動關閉
+- 全螢幕視圖以 Modal(size xxl,現行 API 的最大尺寸)呈現,跳轉時自動關閉
 - 回覆透過 Discord 內部 MessageActions 附 message_reference 送出
 - DataStore 鍵 `messageBoard`,結構 `{ blacklist: channelId[], lastOpened: timestamp }`;訊息本體另以每頻道獨立鍵 `messageBoard.msgs.<channelId>` 儲存,便於分頁讀取與逐頻道淘汰
 
