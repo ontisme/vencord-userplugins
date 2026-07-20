@@ -9,8 +9,8 @@ import { sendMessage } from "@utils/discord";
 import { findByPropsLazy } from "@webpack";
 import {
     ChannelRouter, ChannelStore, ContextMenuApi, GuildStore, Menu, moment,
-    NavigationRouter, Parser, React, TextInput, Toasts, useEffect, useReducer,
-    UserStore, useState
+    NavigationRouter, Parser, React, TextInput, Toasts, useEffect, useLayoutEffect,
+    useReducer, useRef, UserStore, useState
 } from "@webpack/common";
 
 import { avatarUrl, channelIconUrl, guildIconUrl } from "../_shared/avatar";
@@ -116,7 +116,7 @@ function JumpIcon() {
     );
 }
 
-function MessageRow({ msg }: { msg: StoredMessage; }) {
+function MessageRow({ msg, isNew }: { msg: StoredMessage; isNew: boolean; }) {
     const [replying, setReplying] = useState(false);
     const [text, setText] = useState("");
 
@@ -137,7 +137,7 @@ function MessageRow({ msg }: { msg: StoredMessage; }) {
 
     return (
         <div
-            className={"vc-msgboard-msg" + (replying ? " vc-msgboard-msg-replying" : "")}
+            className={"vc-msgboard-msg" + (replying ? " vc-msgboard-msg-replying" : "") + (isNew ? " vc-msgboard-msg-enter" : "")}
             onContextMenu={e => openChannelMenu(e, msg.channelId, msg.guildId)}
         >
             <img className="vc-msgboard-avatar" src={avatarUrl(msg.authorId, msg.authorAvatar, 64)} alt="" />
@@ -177,6 +177,18 @@ function ChannelCard({ meta }: { meta: ChannelMeta; }) {
     const [messages, setMessages] = useState<StoredMessage[]>([]);
     const [exhausted, setExhausted] = useState(false);
 
+    // 追蹤已見過的訊息 id;首次載入不觸發淡入,之後新到的訊息才播放進場動畫
+    const seenIds = useRef<Set<string>>(new Set());
+    const primed = useRef(false);
+    const newIds = new Set<string>();
+    if (primed.current) {
+        for (const m of messages) if (!seenIds.current.has(m.id)) newIds.add(m.id);
+    }
+    useEffect(() => {
+        seenIds.current = new Set(messages.map(m => m.id));
+        if (messages.length > 0) primed.current = true;
+    }, [messages]);
+
     useEffect(() => {
         readPage(meta.channelId).then(page => setMessages(page.reverse()));
     }, [meta.channelId, meta.lastActivity]);
@@ -197,7 +209,7 @@ function ChannelCard({ meta }: { meta: ChannelMeta; }) {
     const { title, subtitle, iconUrl, initial } = channelHeader(meta.channelId);
 
     return (
-        <div className="vc-msgboard-card">
+        <div className="vc-msgboard-card" data-cid={meta.channelId}>
             <div
                 className="vc-msgboard-card-head"
                 onClick={() => ChannelRouter.transitionToChannel(meta.channelId)}
@@ -213,7 +225,7 @@ function ChannelCard({ meta }: { meta: ChannelMeta; }) {
                 <span className="vc-msgboard-card-count">{messages.length}</span>
             </div>
             <div className="vc-msgboard-card-body">
-                {messages.map(m => <MessageRow key={m.id} msg={m} />)}
+                {messages.map(m => <MessageRow key={m.id} msg={m} isNew={newIds.has(m.id)} />)}
                 {!exhausted && messages.length >= 30 && (
                     <button className="vc-msgboard-more" onClick={loadOlder}>載入更早的訊息</button>
                 )}
@@ -222,17 +234,52 @@ function ChannelCard({ meta }: { meta: ChannelMeta; }) {
     );
 }
 
+// 卡片重排時的 FLIP 動畫:記錄上一輪各卡片位置,重排後從舊位置滑到新位置
+function useFlip(gridRef: React.RefObject<HTMLDivElement | null>, deps: unknown[]) {
+    const prev = useRef<Map<string, DOMRect>>(new Map());
+
+    useLayoutEffect(() => {
+        const grid = gridRef.current;
+        if (!grid) return;
+        const cards = Array.from(grid.querySelectorAll<HTMLElement>(".vc-msgboard-card"));
+        const next = new Map<string, DOMRect>();
+
+        for (const card of cards) {
+            const { cid } = card.dataset;
+            if (!cid) continue;
+            const rect = card.getBoundingClientRect();
+            next.set(cid, rect);
+            const old = prev.current.get(cid);
+            if (!old) continue;
+            const dx = old.left - rect.left;
+            const dy = old.top - rect.top;
+            if (dx === 0 && dy === 0) continue;
+            card.animate(
+                [
+                    { transform: `translate(${dx}px, ${dy}px)` },
+                    { transform: "translate(0, 0)" }
+                ],
+                { duration: 320, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }
+            );
+        }
+        prev.current = next;
+    }, deps);
+}
+
 function BoardInner() {
     const [, forceUpdate] = useReducer(x => x + 1, 0);
+    const gridRef = useRef<HTMLDivElement>(null);
     useEffect(() => subscribe(forceUpdate), []);
     useEffect(() => {
         flush().then(() => markOpened());
     }, []);
 
     const channels = getChannelIndex();
+    useFlip(gridRef, [channels.map(c => c.channelId).join(",")]);
+
     return (
         <div className="vc-msgboard-page">
-            <div className="vc-msgboard-grid">
+            <div className="vc-msgboard-grid" ref={gridRef}>
                 {channels.length === 0 && (
                     <div className="vc-msgboard-empty">
                         <div className="vc-msgboard-empty-title">目前還沒有訊息</div>

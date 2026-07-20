@@ -1,19 +1,18 @@
-/* 在 base grid 的標題列與內容之間插入一列給分頁,跨滿三欄 */
+/* base grid 原本兩列(titleBar / content),content 跨 titleBarEnd..end。
+   插入一列 tabs 於中間,並把 content 的起點推到 tabsEnd,避免 content(含側欄)蓋住分頁列。 */
 [class*="base_"]:has(> .vc-chtabs-bar) {
     grid-template-rows:
         [top] auto [titleBarEnd]
         auto [tabsEnd]
-        [noticeStart] min-content [noticeEnd]
-        [contentStart] 1fr [end] !important;
-    grid-template-areas:
-        "titleBar titleBar titleBar"
-        "tabs tabs tabs"
-        "guildsList notice notice"
-        "guildsList channelsList page" !important;
+        1fr [end] !important;
+}
+[class*="base_"]:has(> .vc-chtabs-bar) > [class*="content_"] {
+    grid-row-start: tabsEnd !important;
 }
 
 .vc-chtabs-bar {
-    grid-area: tabs;
+    grid-column: 1 / -1;
+    grid-row: titleBarEnd / tabsEnd;
     display: flex;
     align-items: center;
     gap: 4px;

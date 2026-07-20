@@ -130,6 +130,27 @@
 .vc-msgboard-msg:hover,
 .vc-msgboard-msg-replying { background: var(--background-mod-subtle); }
 
+/* 新訊息進場:淡入 + 由上輕滑,並短暫高亮一下 */
+.vc-msgboard-msg-enter {
+    animation: vc-msgboard-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes vc-msgboard-enter {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+        background: color-mix(in oklab, var(--brand-500) 18%, transparent);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        background: transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vc-msgboard-msg-enter { animation: none; }
+}
+
 .vc-msgboard-avatar {
     width: 32px;
     height: 32px;

@@ -85,6 +85,7 @@ function shouldStore(message: any): boolean {
 export function handleMessage(message: any): void {
     try {
         if (!shouldStore(message)) return;
+        const ts = Date.parse(message.timestamp) || 0;
         pending.push({
             id: message.id,
             channelId: message.channel_id,
@@ -93,9 +94,13 @@ export function handleMessage(message: any): void {
             authorName: message.author.global_name ?? message.author.username,
             authorAvatar: message.author.avatar ?? null,
             content: message.content ?? "",
-            timestamp: Date.parse(message.timestamp) || 0,
+            timestamp: ts,
             attachmentCount: (message.attachments?.length ?? 0) + (message.embeds?.length ?? 0)
         });
+        // 即時更新已在看板的頻道排序(記憶體),讓重排不必等 flush;
+        // 全新頻道仍由 flush 建立索引與寫入內容,避免出現短暫空卡片
+        const entry = index.find(e => e.channelId === message.channel_id);
+        if (entry) entry.lastActivity = Math.max(entry.lastActivity, ts);
         newActivityChannels.add(message.channel_id);
         emit();
     } catch {
