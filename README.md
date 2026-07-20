@@ -41,11 +41,19 @@ Vencord 版本鎖定在 `scripts\build-dist.sh` 的 `VENCORD_COMMIT`(目前 0a5d
 
 一次性乾淨建置(等同 CI):
 
+Windows(PowerShell,無需 bash):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build-dist.ps1
+```
+
+其他平台(bash):
+
 ```
 bash scripts/build-dist.sh   # 產出 dist/,可直接給 Vesktop 掛載
 ```
 
-需求:Node >= 22、pnpm 11.9.0、git、bash。
+需求:Node >= 22、pnpm 11.9.0、git。(CI 用 .sh 版;`.ps1` 與 `.sh` 邏輯等價)
 
 ## 本機開發迭代
 
