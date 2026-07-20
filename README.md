@@ -40,7 +40,7 @@ pnpm build          # 或 pnpm watch 持續建置
 | FavoriteChannels | 右鍵頻道加入最愛,置頂顯示於該伺服器頻道列表頂端 | `FavoriteChannels_data` |
 | FavoriteServers | 視窗最左獨立的最愛伺服器列,支援拖曳排序與資料夾分組;右鍵伺服器加入/移除 | `FavoriteServers_data` |
 | ChannelTabs | 伺服器分頁列(標題列下方整列,icon + 名稱),點擊回到該伺服器最後停留頻道;分頁過多時擠壓+橫向捲動;可拖曳/右鍵關閉;重啟還原 | `ChannelTabs_guildTabs` |
-| MessageBoard | 好友頁「動態磚」分頁:未靜音頻道訊息牆,卡片虛擬化(不可見不渲染);新訊息淡入+重排動畫;快速回覆/跳轉/右鍵靜音 | `MessageBoard_meta`、`MessageBoard_index`、`MessageBoard_msgs_<channelId>` |
+| MessageBoard | 好友頁「動態磚」分頁:未靜音頻道訊息牆,卡片虛擬化(不可見不渲染);新訊息淡入+重排動畫;快速回覆/跳轉;右鍵靜音/隱藏頻道/隱藏整個伺服器;管理介面(動態磚右上角按鈕 + Vencord 外掛設定頁)可逐項解除或一鍵清空黑名單 | `MessageBoard_meta`、`MessageBoard_index`、`MessageBoard_msgs_<channelId>` |
 
 三個外掛皆已在 Vesktop 實機驗證通過(2026-07-20)。
 

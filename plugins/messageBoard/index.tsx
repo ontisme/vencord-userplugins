@@ -7,8 +7,10 @@
 import "./styles.css";
 
 import definePlugin from "@utils/types";
+import { Button } from "@webpack/common";
 
 import { Board } from "./Board";
+import { openManageModal } from "./ManageModal";
 import { flush, getNewActivityCount, handleMessage, init, stopFlushing } from "./storage";
 
 export const BOARD_SECTION = "VC_MESSAGE_BOARD";
@@ -17,6 +19,12 @@ export default definePlugin({
     name: "MessageBoard",
     description: "訊息動態磚:好友頁新增動態磚分頁,顯示未靜音頻道的即時訊息牆,可快速回覆與跳轉",
     authors: [{ name: "ontisme", id: 0n }],
+
+    settingsAboutComponent: () => (
+        <Button size={Button.Sizes.SMALL} onClick={() => openManageModal()}>
+            管理被隱藏的伺服器與頻道
+        </Button>
+    ),
 
     patches: [
         {

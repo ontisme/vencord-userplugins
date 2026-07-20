@@ -36,11 +36,13 @@ export interface ChannelMeta {
 }
 
 interface Meta {
+    // blacklist: 頻道黑名單;guildBlacklist: 伺服器黑名單(整個伺服器不顯示)
     blacklist: string[];
+    guildBlacklist: string[];
     lastOpened: number;
 }
 
-let meta: Meta = { blacklist: [], lastOpened: 0 };
+let meta: Meta = { blacklist: [], guildBlacklist: [], lastOpened: 0 };
 let index: ChannelMeta[] = [];
 let pending: StoredMessage[] = [];
 const newActivityChannels = new Set<string>();
@@ -51,7 +53,9 @@ export { subscribe };
 
 export async function init(): Promise<void> {
     const storedMeta = await DataStore.get<Meta>(META_KEY);
-    if (storedMeta && Array.isArray(storedMeta.blacklist)) meta = storedMeta;
+    if (storedMeta && Array.isArray(storedMeta.blacklist)) {
+        meta = { ...storedMeta, guildBlacklist: storedMeta.guildBlacklist ?? [] };
+    }
     const storedIndex = await DataStore.get<ChannelMeta[]>(INDEX_KEY);
     if (Array.isArray(storedIndex)) index = storedIndex;
     if (!flushTimer) flushTimer = setInterval(() => { flush(); }, FLUSH_INTERVAL);
@@ -71,6 +75,7 @@ function shouldStore(message: any): boolean {
     if (message.author.id === UserStore.getCurrentUser()?.id) return false;
     if (RelationshipStore.isBlocked(message.author.id)) return false;
     if (meta.blacklist.includes(message.channel_id)) return false;
+    if (message.guild_id && meta.guildBlacklist.includes(message.guild_id)) return false;
     const channel = ChannelStore.getChannel(message.channel_id);
     if (!channel) return false;
     if (channel.guild_id) {
@@ -164,15 +169,57 @@ export function getBlacklist(): string[] {
     return meta.blacklist;
 }
 
+export function getGuildBlacklist(): string[] {
+    return meta.guildBlacklist;
+}
+
+async function dropChannelData(channelId: string): Promise<void> {
+    await DataStore.del(msgKey(channelId));
+    index = index.filter(e => e.channelId !== channelId);
+    newActivityChannels.delete(channelId);
+}
+
 export async function addToBlacklist(channelId: string): Promise<void> {
     if (!meta.blacklist.includes(channelId)) {
         meta.blacklist = [...meta.blacklist, channelId];
         await DataStore.set(META_KEY, meta);
     }
-    await DataStore.del(msgKey(channelId));
-    index = index.filter(e => e.channelId !== channelId);
-    newActivityChannels.delete(channelId);
+    await dropChannelData(channelId);
     await DataStore.set(INDEX_KEY, index);
+    emit();
+}
+
+// 隱藏整個伺服器:加入伺服器黑名單,並清掉該伺服器所有已存頻道
+export async function addGuildToBlacklist(guildId: string): Promise<void> {
+    if (!meta.guildBlacklist.includes(guildId)) {
+        meta.guildBlacklist = [...meta.guildBlacklist, guildId];
+        await DataStore.set(META_KEY, meta);
+    }
+    const victims = index.filter(e => {
+        const ch = ChannelStore.getChannel(e.channelId);
+        return ch?.guild_id === guildId;
+    });
+    for (const v of victims) await dropChannelData(v.channelId);
+    await DataStore.set(INDEX_KEY, index);
+    emit();
+}
+
+export async function removeFromChannelBlacklist(channelId: string): Promise<void> {
+    meta.blacklist = meta.blacklist.filter(id => id !== channelId);
+    await DataStore.set(META_KEY, meta);
+    emit();
+}
+
+export async function removeFromGuildBlacklist(guildId: string): Promise<void> {
+    meta.guildBlacklist = meta.guildBlacklist.filter(id => id !== guildId);
+    await DataStore.set(META_KEY, meta);
+    emit();
+}
+
+export async function clearAllBlacklists(): Promise<void> {
+    meta.blacklist = [];
+    meta.guildBlacklist = [];
+    await DataStore.set(META_KEY, meta);
     emit();
 }
 

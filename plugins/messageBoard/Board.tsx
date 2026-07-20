@@ -14,9 +14,10 @@ import {
 } from "@webpack/common";
 
 import { avatarUrl, channelIconUrl, guildIconUrl } from "../_shared/avatar";
+import { openManageModal } from "./ManageModal";
 import {
-    addToBlacklist, ChannelMeta, flush, getChannelIndex, markOpened, readPage,
-    StoredMessage, subscribe
+    addGuildToBlacklist, addToBlacklist, ChannelMeta, flush, getChannelIndex, markOpened,
+    readPage, StoredMessage, subscribe
 } from "./storage";
 
 const NotificationSettingsActions = findByPropsLazy("updateChannelOverrideSettings");
@@ -101,9 +102,17 @@ function openChannelMenu(e: React.MouseEvent, channelId: string, guildId: string
             />
             <Menu.MenuItem
                 id="vc-msgboard-hide"
-                label="僅從動態磚隱藏"
+                label="僅從動態磚隱藏此頻道"
                 action={() => addToBlacklist(channelId)}
             />
+            {guildId && (
+                <Menu.MenuItem
+                    id="vc-msgboard-hide-guild"
+                    label="從動態磚隱藏整個伺服器"
+                    color="danger"
+                    action={() => addGuildToBlacklist(guildId)}
+                />
+            )}
         </Menu.Menu>
     ));
 }
@@ -323,6 +332,19 @@ function BoardInner() {
 
     return (
         <div className="vc-msgboard-page">
+            <div className="vc-msgboard-toolbar">
+                <span className="vc-msgboard-toolbar-title">動態磚</span>
+                <button
+                    className="vc-msgboard-manage-btn"
+                    title="管理被隱藏的伺服器與頻道"
+                    onClick={() => openManageModal()}
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84a.48.48 0 0 0-.48.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.13.22.39.31.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.48-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.09.47 0 .59-.22l1.92-3.32a.49.49 0 0 0-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 1 1 12 8.4a3.6 3.6 0 0 1 0 7.2z" />
+                    </svg>
+                    管理隱藏
+                </button>
+            </div>
             <div className="vc-msgboard-grid" ref={gridRef}>
                 {channels.length === 0 && (
                     <div className="vc-msgboard-empty">

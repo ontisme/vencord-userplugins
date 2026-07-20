@@ -6,6 +6,111 @@
     overflow: hidden;
 }
 
+/* 動態磚頂部工具列 */
+.vc-msgboard-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 4px;
+    flex-shrink: 0;
+}
+.vc-msgboard-toolbar-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-default);
+}
+.vc-msgboard-manage-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--background-surface-higher);
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+.vc-msgboard-manage-btn:hover {
+    background: var(--background-surface-highest);
+    color: var(--text-default);
+}
+
+/* 管理 Modal */
+.vc-msgboard-manage {
+    padding: 16px;
+    max-height: 60vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+.vc-msgboard-manage-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 0;
+}
+.vc-msgboard-manage-section { margin-bottom: 16px; }
+.vc-msgboard-manage-heading {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 0 6px;
+}
+.vc-msgboard-manage-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 8px;
+}
+.vc-msgboard-manage-row:hover { background: var(--background-mod-subtle); }
+.vc-msgboard-manage-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+.vc-msgboard-manage-icon-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--background-base-lowest);
+    color: var(--text-default);
+}
+.vc-msgboard-manage-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-default);
+    font-size: 14px;
+}
+.vc-msgboard-manage-remove {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-link);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+.vc-msgboard-manage-remove:hover { background: var(--background-mod-subtle); }
+.vc-msgboard-manage-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-subtle);
+    margin-top: 8px;
+}
+
 .vc-msgboard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
