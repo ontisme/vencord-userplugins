@@ -16,9 +16,10 @@ import { isSelfDeaf, isSelfMute, toggleSelfDeaf, toggleSelfMute } from "./voiceA
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 const SpeakingStore = findStoreLazy("SpeakingStore");
 const MediaEngineStore = findStoreLazy("MediaEngineStore");
-// Discord 原生使用者右鍵選單 opener(語音情境會帶完整語音群組:靜音/拒聽/伺服器端靜音/音量/身分組/應用程式,依權限動態顯示)。
-// 惰性載入完整原生選單 chunk;識別字串 "Cannot moderate user" 於 bundle 中唯一。
-const openNativeUserMenu: any = findByCodeLazy("Cannot moderate user", "moderationAlertId");
+// Discord 原生「語音成員」右鍵選單 opener(GuildVoiceUserContextMenu),含使用者音量滑桿、伺服器端靜音/拒聽、
+// 個人資料、身分組等,依權限動態顯示。簽名:opener(event, user, channel, minimalContextMenu?, onInteraction?)。
+// 識別字串 "GuildVoiceUserContextMenu" 於 bundle 中唯一。
+const openVoiceUserMenu: any = findByCodeLazy("GuildVoiceUserContextMenu", "getGuildId");
 
 interface Member {
     userId: string;
@@ -58,14 +59,15 @@ function DeafIcon() {
 }
 
 function openMemberMenu(e: React.MouseEvent, userId: string, channelId: string) {
-    if (!openNativeUserMenu) return;
+    if (!openVoiceUserMenu) return;
     e.preventDefault();
     const user = UserStore.getUser(userId);
     const channel = ChannelStore.getChannel(channelId);
     if (!user || !channel) return;
-    // opener 需原生 MouseEvent 定位;帶 user + channel 讓原生選單依情境與權限組出完整項目
+    // 位置參數:opener(event, user, channel, minimalContextMenu?, onInteraction?)。
+    // event 需原生 MouseEvent 定位;onInteraction 為 analytics 回呼,傳 noop。
     const domEvent = e.nativeEvent ?? e;
-    openNativeUserMenu(domEvent, { user, channel, guildId: (channel as any).guild_id });
+    openVoiceUserMenu(domEvent, user, channel, undefined, () => { });
 }
 
 function MemberAvatar({ userId, selfMute, selfDeaf, channelId }: { userId: string; selfMute: boolean; selfDeaf: boolean; channelId: string; }) {
