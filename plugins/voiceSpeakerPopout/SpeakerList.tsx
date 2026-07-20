@@ -6,14 +6,18 @@
 
 import { findByCodeLazy, findStoreLazy } from "@webpack";
 import {
-    ChannelStore, SelectedChannelStore, UserStore, useStateFromStores
+    ChannelStore, SelectedChannelStore, UserStore, useState, useStateFromStores
 } from "@webpack/common";
 
 import { avatarUrl } from "../_shared/avatar";
 import { settings } from "./settings";
+import {
+    getLocalVolume, isSelfDeaf, isSelfMute, setLocalVolume, toggleSelfDeaf, toggleSelfMute
+} from "./voiceActions";
 
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 const SpeakingStore = findStoreLazy("SpeakingStore");
+const MediaEngineStore = findStoreLazy("MediaEngineStore");
 // Discord 原生使用者右鍵選單 opener(語音情境會帶完整語音群組:靜音/拒聽/伺服器端靜音/音量/身分組/應用程式,依權限動態顯示)。
 // 惰性載入完整原生選單 chunk;識別字串 "Cannot moderate user" 於 bundle 中唯一。
 const openNativeUserMenu: any = findByCodeLazy("Cannot moderate user", "moderationAlertId");
@@ -66,16 +70,24 @@ function openMemberMenu(e: React.MouseEvent, userId: string, channelId: string) 
     openNativeUserMenu(domEvent, { user, channel, guildId: (channel as any).guild_id });
 }
 
-function MemberAvatar({ userId, selfMute, selfDeaf, channelId }: { userId: string; selfMute: boolean; selfDeaf: boolean; channelId: string; }) {
+function MemberAvatar({ userId, selfMute, selfDeaf, channelId, isSelf }: { userId: string; selfMute: boolean; selfDeaf: boolean; channelId: string; isSelf: boolean; }) {
     const user = UserStore.getUser(userId);
     const speaking = useStateFromStores([SpeakingStore], () => SpeakingStore.isSpeaking(userId));
     const { showMode } = settings.use(["showMode"]);
+    // 音量為受控狀態:初始讀原生本地音量,拖動時即時套用(僅對他人)
+    const [volume, setVolume] = useState(() => (isSelf ? 100 : Math.round(getLocalVolume(userId))));
 
     if (showMode === "speakingOnly" && !speaking) return null;
 
     const name = (user as any)?.globalName ?? user?.username ?? "使用者";
     const url = user ? avatarUrl(user.id, (user as any).avatar, 64) : null;
     const initial = name.slice(0, 1).toUpperCase();
+
+    function onVolumeChange(e: React.ChangeEvent<HTMLInputElement>) {
+        const v = Number(e.target.value);
+        setVolume(v);
+        setLocalVolume(userId, v);
+    }
 
     return (
         <div
@@ -92,6 +104,63 @@ function MemberAvatar({ userId, selfMute, selfDeaf, channelId }: { userId: strin
                 )}
             </div>
             <span className="vc-vsp-name">{name}</span>
+            {!isSelf && (
+                <input
+                    className="vc-vsp-volume"
+                    type="range"
+                    min={0}
+                    max={200}
+                    value={volume}
+                    onChange={onVolumeChange}
+                    onClick={e => e.stopPropagation()}
+                    title={`音量 ${volume}%`}
+                />
+            )}
+        </div>
+    );
+}
+
+function MicIcon({ off }: { off: boolean; }) {
+    if (off) return <MicOffIcon />;
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+        </svg>
+    );
+}
+
+function HeadphoneIcon({ off }: { off: boolean; }) {
+    if (off) return <DeafIcon />;
+    return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 3a9 9 0 0 0-9 9v7a2 2 0 0 0 2 2h2v-8H5v-1a7 7 0 0 1 14 0v1h-2v8h2a2 2 0 0 0 2-2v-7a9 9 0 0 0-9-9z" />
+        </svg>
+    );
+}
+
+// 底部控制列:麥克風開關 + 拒聽,狀態即時同步原生
+export function ControlBar() {
+    const { muted, deaf } = useStateFromStores([MediaEngineStore], () => ({
+        muted: isSelfMute(),
+        deaf: isSelfDeaf()
+    }));
+
+    return (
+        <div className="vc-vsp-controls">
+            <button
+                className={"vc-vsp-ctrl-btn" + (muted ? " vc-vsp-ctrl-active" : "")}
+                onClick={toggleSelfMute}
+                title={muted ? "取消靜音" : "靜音麥克風"}
+            >
+                <MicIcon off={muted} />
+            </button>
+            <button
+                className={"vc-vsp-ctrl-btn" + (deaf ? " vc-vsp-ctrl-active" : "")}
+                onClick={toggleSelfDeaf}
+                title={deaf ? "取消拒聽" : "拒聽(關閉聲音)"}
+            >
+                <HeadphoneIcon off={deaf} />
+            </button>
         </div>
     );
 }
@@ -105,6 +174,7 @@ export function useVoiceTitle(): string {
 export function SpeakerList() {
     const { channelId, channelName, members } = useVoiceMembers();
     const { layout } = settings.use(["layout"]);
+    const selfId = UserStore.getCurrentUser()?.id;
 
     if (!channelId || !channelName) {
         return <div className="vc-vsp-empty">目前不在語音頻道</div>;
@@ -113,7 +183,7 @@ export function SpeakerList() {
     return (
         <div className={"vc-vsp-members vc-vsp-" + layout}>
             {members.map(m => (
-                <MemberAvatar key={m.userId} userId={m.userId} selfMute={m.selfMute} selfDeaf={m.selfDeaf} channelId={channelId} />
+                <MemberAvatar key={m.userId} userId={m.userId} selfMute={m.selfMute} selfDeaf={m.selfDeaf} channelId={channelId} isSelf={m.userId === selfId} />
             ))}
         </div>
     );

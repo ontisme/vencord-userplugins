@@ -7,7 +7,7 @@
 import ErrorBoundary from "@components/ErrorBoundary";
 import { ReactDOM, useEffect, useReducer, useRef, useState } from "@webpack/common";
 
-import { SpeakerList, useVoiceTitle } from "./SpeakerList";
+import { ControlBar, SpeakerList, useVoiceTitle } from "./SpeakerList";
 import { getPosition, getSize, isVisible, setPosition, setSize, setVisible, subscribe } from "./state";
 
 const DEFAULT_MARGIN = 20;
@@ -92,6 +92,7 @@ function OverlayWindow() {
             <div className="vc-vsp-body">
                 <SpeakerList />
             </div>
+            <ControlBar />
         </div>
     );
 }
