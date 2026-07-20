@@ -1,0 +1,35 @@
+.vc-chtabs-bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 60vw;
+    min-width: 0;
+    -webkit-app-region: no-drag;
+}
+.vc-chtabs-bar::-webkit-scrollbar { display: none; }
+.vc-chtabs-tab {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px 2px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--interactive-normal);
+    background: var(--background-secondary);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+}
+.vc-chtabs-tab:hover { background: var(--background-modifier-hover); }
+.vc-chtabs-active { background: var(--background-modifier-selected); color: var(--interactive-active); }
+.vc-chtabs-unread { font-weight: 700; color: var(--interactive-active); }
+.vc-chtabs-label { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.vc-chtabs-close {
+    opacity: 0.5;
+    padding: 0 3px;
+    border-radius: 3px;
+    line-height: 1;
+}
+.vc-chtabs-close:hover { opacity: 1; background: var(--background-modifier-hover); }
