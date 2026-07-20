@@ -8,6 +8,7 @@ import "./styles.css";
 
 import definePlugin from "@utils/types";
 
+import { loadLastChannels, recordLastChannel } from "../_shared/lastChannel";
 import { TabBar } from "./TabBar";
 import { loadTabs, openGuildTab, pruneInvalidTabs } from "./tabs";
 
@@ -32,8 +33,9 @@ export default definePlugin({
     },
 
     flux: {
-        // 切換頻道時,以該頻道所屬伺服器(或私訊區)作為分頁鍵
-        CHANNEL_SELECT({ guildId }: { guildId: string | null; }) {
+        // 切換頻道時,以該頻道所屬伺服器(或私訊區)作為分頁鍵,並記錄該伺服器最後頻道
+        CHANNEL_SELECT({ guildId, channelId }: { guildId: string | null; channelId: string | null; }) {
+            recordLastChannel(guildId, channelId);
             openGuildTab(guildId ?? "@me");
         },
         CONNECTION_OPEN() {
@@ -45,6 +47,7 @@ export default definePlugin({
     },
 
     async start() {
+        await loadLastChannels();
         await loadTabs();
     }
 });

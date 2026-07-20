@@ -8,6 +8,7 @@ import * as DataStore from "@api/DataStore";
 import { findStoreLazy } from "@webpack";
 import { ChannelStore, GuildStore, NavigationRouter, SelectedChannelStore } from "@webpack/common";
 
+import { getLastChannel } from "../_shared/lastChannel";
 import { createListenerRegistry } from "../_shared/listeners";
 
 const GuildChannelStore = findStoreLazy("GuildChannelStore");
@@ -143,10 +144,12 @@ export function navigateToTab(guildId: string): void {
     };
 
     if (guildId === "@me") {
-        const lastDm = SelectedChannelStore.getLastSelectedChannelId("@me");
+        // 自身持久記錄優先,退回 Discord session 記憶
+        const lastDm = getLastChannel("@me") ?? SelectedChannelStore.getLastSelectedChannelId("@me");
         NavigationRouter.transitionTo(lastDm ? `/channels/@me/${lastDm}` : "/channels/@me");
     } else {
-        const lastChannel = SelectedChannelStore.getLastSelectedChannelId(guildId);
+        // 自身持久記錄優先,退回 Discord session 記憶
+        const lastChannel = getLastChannel(guildId) ?? SelectedChannelStore.getLastSelectedChannelId(guildId);
         if (lastChannel && ChannelStore.getChannel(lastChannel)) {
             NavigationRouter.transitionToGuild(guildId, lastChannel);
         } else {

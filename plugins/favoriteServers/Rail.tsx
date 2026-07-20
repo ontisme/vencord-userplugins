@@ -13,6 +13,7 @@ import {
 } from "@webpack/common";
 
 import { guildIconUrl } from "../_shared/avatar";
+import { getLastChannel } from "../_shared/lastChannel";
 import {
     addGuildToFolder, createFolderFrom, deleteFolder, getItems, RailItem, removeGuild,
     removeGuildFromFolder, renameFolder, reorderItem, subscribe, toggleFolder
@@ -42,7 +43,8 @@ function useGuildLiveStatus(guildId: string): { live: boolean; inVoice: boolean;
 }
 
 function navigateToGuild(guildId: string) {
-    const last = SelectedChannelStore.getLastSelectedChannelId(guildId);
+    // 自身持久記錄優先,退回 Discord session 記憶
+    const last = getLastChannel(guildId) ?? SelectedChannelStore.getLastSelectedChannelId(guildId);
     if (last) {
         NavigationRouter.transitionToGuild(guildId, last);
         return;

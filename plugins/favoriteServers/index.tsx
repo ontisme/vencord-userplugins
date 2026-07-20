@@ -10,6 +10,7 @@ import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/Co
 import definePlugin from "@utils/types";
 import { GuildStore, Menu } from "@webpack/common";
 
+import { loadLastChannels, recordLastChannel } from "../_shared/lastChannel";
 import { addGuild, isFavorite, loadRail, pruneInvalid, removeGuild } from "./data";
 import { Rail } from "./Rail";
 
@@ -63,12 +64,17 @@ export default definePlugin({
     },
 
     flux: {
+        // 記錄各伺服器最後造訪頻道(與 ChannelTabs 共用同一份持久記錄)
+        CHANNEL_SELECT({ guildId, channelId }: { guildId: string | null; channelId: string | null; }) {
+            recordLastChannel(guildId, channelId);
+        },
         GUILD_DELETE() {
             pruneInvalid(id => GuildStore.getGuild(id) != null);
         }
     },
 
     async start() {
+        await loadLastChannels();
         await loadRail();
         pruneInvalid(id => GuildStore.getGuild(id) != null);
     }
