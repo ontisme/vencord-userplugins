@@ -47,6 +47,15 @@
     height: 380px;
     min-height: 0;
     overflow: hidden;
+    /* 讓瀏覽器跳過視窗外卡片的排版與繪製 */
+    content-visibility: auto;
+    contain-intrinsic-size: auto 380px;
+}
+
+/* 不可見卡片的內容佔位,維持高度避免捲動跳動 */
+.vc-msgboard-card-placeholder {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .vc-msgboard-card-head {

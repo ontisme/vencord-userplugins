@@ -140,7 +140,7 @@ function MessageRow({ msg, isNew }: { msg: StoredMessage; isNew: boolean; }) {
             className={"vc-msgboard-msg" + (replying ? " vc-msgboard-msg-replying" : "") + (isNew ? " vc-msgboard-msg-enter" : "")}
             onContextMenu={e => openChannelMenu(e, msg.channelId, msg.guildId)}
         >
-            <img className="vc-msgboard-avatar" src={avatarUrl(msg.authorId, msg.authorAvatar, 64)} alt="" />
+            <img className="vc-msgboard-avatar" src={avatarUrl(msg.authorId, msg.authorAvatar, 64)} alt="" loading="lazy" />
             <div className="vc-msgboard-msg-main" onClick={() => setReplying(v => !v)}>
                 <div className="vc-msgboard-msg-head">
                     <span className="vc-msgboard-author">{msg.authorName}</span>
@@ -173,11 +173,28 @@ function MessageRow({ msg, isNew }: { msg: StoredMessage; isNew: boolean; }) {
     );
 }
 
-function ChannelCard({ meta }: { meta: ChannelMeta; }) {
+// 卡片可見性偵測:進入視窗(含 600px 前後緩衝)才回傳 true,離開後回 false。
+// 用於虛擬化——不可見的卡片不渲染內容、不訂閱 store、不讀取訊息。
+function useInView<T extends HTMLElement>(ref: React.RefObject<T | null>): boolean {
+    const [inView, setInView] = useState(false);
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const io = new IntersectionObserver(
+            entries => setInView(entries[0].isIntersecting),
+            { root: null, rootMargin: "600px 0px", threshold: 0 }
+        );
+        io.observe(el);
+        return () => io.disconnect();
+    }, [ref]);
+    return inView;
+}
+
+// 卡片內容:僅在可見時掛載,負責 readPage、store 訂閱、訊息動畫
+function CardContent({ meta }: { meta: ChannelMeta; }) {
     const [messages, setMessages] = useState<StoredMessage[]>([]);
     const [exhausted, setExhausted] = useState(false);
 
-    // 追蹤已見過的訊息 id;首次載入不觸發淡入,之後新到的訊息才播放進場動畫
     const seenIds = useRef<Set<string>>(new Set());
     const primed = useRef(false);
     const newIds = new Set<string>();
@@ -204,43 +221,56 @@ function ChannelCard({ meta }: { meta: ChannelMeta; }) {
         setMessages([...messages, ...page.reverse()]);
     }
 
+    return (
+        <div className="vc-msgboard-card-body">
+            {messages.map(m => <MessageRow key={m.id} msg={m} isNew={newIds.has(m.id)} />)}
+            {!exhausted && messages.length >= 30 && (
+                <button className="vc-msgboard-more" onClick={loadOlder}>載入更早的訊息</button>
+            )}
+        </div>
+    );
+}
+
+function ChannelCard({ meta }: { meta: ChannelMeta; }) {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const inView = useInView(cardRef);
+
     const channel = ChannelStore.getChannel(meta.channelId);
     const guildId = channel?.guild_id ?? null;
     const { title, subtitle, iconUrl, initial } = channelHeader(meta.channelId);
 
     return (
-        <div className="vc-msgboard-card" data-cid={meta.channelId}>
+        <div className="vc-msgboard-card" data-cid={meta.channelId} ref={cardRef}>
             <div
                 className="vc-msgboard-card-head"
                 onClick={() => ChannelRouter.transitionToChannel(meta.channelId)}
                 onContextMenu={e => openChannelMenu(e, meta.channelId, guildId)}
             >
                 {iconUrl
-                    ? <img className="vc-msgboard-card-icon" src={iconUrl} alt="" />
+                    ? <img className="vc-msgboard-card-icon" src={iconUrl} alt="" loading="lazy" />
                     : <span className="vc-msgboard-card-icon vc-msgboard-card-icon-fallback">{initial}</span>}
                 <div className="vc-msgboard-card-titles">
                     <span className="vc-msgboard-card-title">{title}</span>
                     {subtitle && <span className="vc-msgboard-card-subtitle">{subtitle}</span>}
                 </div>
-                <span className="vc-msgboard-card-count">{messages.length}</span>
             </div>
-            <div className="vc-msgboard-card-body">
-                {messages.map(m => <MessageRow key={m.id} msg={m} isNew={newIds.has(m.id)} />)}
-                {!exhausted && messages.length >= 30 && (
-                    <button className="vc-msgboard-more" onClick={loadOlder}>載入更早的訊息</button>
-                )}
-            </div>
+            {inView
+                ? <CardContent meta={meta} />
+                : <div className="vc-msgboard-card-placeholder" />}
         </div>
     );
 }
 
-// 卡片重排時的 FLIP 動畫:記錄上一輪各卡片位置,重排後從舊位置滑到新位置
+// 卡片重排時的 FLIP 動畫:只對視窗可見範圍(含緩衝)內的卡片量測與動畫,
+// 避免對上百張離屏卡片呼叫 getBoundingClientRect 造成 layout thrash
 function useFlip(gridRef: React.RefObject<HTMLDivElement | null>, deps: unknown[]) {
     const prev = useRef<Map<string, DOMRect>>(new Map());
 
     useLayoutEffect(() => {
         const grid = gridRef.current;
         if (!grid) return;
+        const viewTop = -400;
+        const viewBottom = window.innerHeight + 400;
         const cards = Array.from(grid.querySelectorAll<HTMLElement>(".vc-msgboard-card"));
         const next = new Map<string, DOMRect>();
 
@@ -248,6 +278,7 @@ function useFlip(gridRef: React.RefObject<HTMLDivElement | null>, deps: unknown[
             const { cid } = card.dataset;
             if (!cid) continue;
             const rect = card.getBoundingClientRect();
+            if (rect.bottom < viewTop || rect.top > viewBottom) continue;
             next.set(cid, rect);
             const old = prev.current.get(cid);
             if (!old) continue;
@@ -269,7 +300,20 @@ function useFlip(gridRef: React.RefObject<HTMLDivElement | null>, deps: unknown[
 function BoardInner() {
     const [, forceUpdate] = useReducer(x => x + 1, 0);
     const gridRef = useRef<HTMLDivElement>(null);
-    useEffect(() => subscribe(forceUpdate), []);
+
+    // 節流:高流量時多則訊息合併為一次 rAF 重繪,避免每則訊息都重跑整個看板
+    useEffect(() => {
+        let scheduled = false;
+        return subscribe(() => {
+            if (scheduled) return;
+            scheduled = true;
+            requestAnimationFrame(() => {
+                scheduled = false;
+                forceUpdate();
+            });
+        });
+    }, []);
+
     useEffect(() => {
         flush().then(() => markOpened());
     }, []);

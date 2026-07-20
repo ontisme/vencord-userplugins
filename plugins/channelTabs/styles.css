@@ -42,20 +42,38 @@
     cursor: pointer;
     white-space: nowrap;
     user-select: none;
-    flex-shrink: 0;
+    /* 分頁多時可擠壓,擠到最小(約 icon+徽章)後才橫向捲動 */
+    flex: 0 1 auto;
+    min-width: 34px;
     max-width: 200px;
-    transition: background 0.12s, color 0.12s;
+    position: relative;
+    transition: background 0.12s, color 0.12s, opacity 0.12s;
 }
 .vc-chtabs-tab:hover {
     background: var(--background-surface-highest);
     color: var(--text-default);
 }
+/* 當前分頁不擠壓,保持完整可讀 */
 .vc-chtabs-active {
     background: color-mix(in oklab, var(--brand-500) 26%, var(--background-surface-highest));
     color: var(--white);
     font-weight: 600;
+    flex-shrink: 0;
 }
 .vc-chtabs-unread { color: var(--text-default); font-weight: 600; }
+
+/* 拖曳中的分頁半透明;放置目標左緣顯示插入指示線 */
+.vc-chtabs-dragging { opacity: 0.4; }
+.vc-chtabs-dropbefore::before {
+    content: "";
+    position: absolute;
+    left: -3px;
+    top: 2px;
+    bottom: 2px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--brand-500);
+}
 
 .vc-chtabs-icon {
     width: 20px;
