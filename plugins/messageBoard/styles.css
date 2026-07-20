@@ -61,6 +61,23 @@
 }
 .vc-msgboard-card-head:hover { background: var(--background-mod-subtle); }
 
+.vc-msgboard-card-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    object-fit: cover;
+}
+.vc-msgboard-card-icon-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--background-base-lowest);
+    color: var(--text-default);
+}
+
 .vc-msgboard-card-titles {
     display: flex;
     flex-direction: column;

@@ -10,6 +10,7 @@ import {
     GuildStore, SelectedGuildStore, useEffect, useReducer, useStateFromStores
 } from "@webpack/common";
 
+import { guildIconUrl } from "../_shared/avatar";
 import { closeTab, getActiveTab, getTabs, moveTab, navigateToTab, subscribe } from "./tabs";
 
 const GuildReadStateStore = findStoreLazy("GuildReadStateStore");
@@ -20,18 +21,13 @@ interface TabInfo {
     initial: string;
 }
 
-function guildIconUrl(guildId: string, icon: string, size = 32): string {
-    const ext = icon.startsWith("a_") ? "gif" : "webp";
-    return `https://cdn.discordapp.com/icons/${guildId}/${icon}.${ext}?size=${size}`;
-}
-
 function tabInfo(tabId: string): TabInfo {
     if (tabId === "@me") return { label: "私訊", iconUrl: null, initial: "@" };
     const guild = GuildStore.getGuild(tabId);
     if (!guild) return { label: "未知伺服器", iconUrl: null, initial: "?" };
     return {
         label: guild.name,
-        iconUrl: guild.icon ? guildIconUrl(tabId, guild.icon) : null,
+        iconUrl: guildIconUrl(tabId, guild.icon, 32),
         initial: guild.name.slice(0, 1).toUpperCase()
     };
 }

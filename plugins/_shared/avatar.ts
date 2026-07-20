@@ -14,3 +14,14 @@ export function avatarUrl(userId: string, avatar: string | null | undefined, siz
     }
     return `https://cdn.discordapp.com/embed/avatars/${index}.png`;
 }
+
+export function guildIconUrl(guildId: string, icon: string | null | undefined, size = 64): string | null {
+    if (!icon) return null;
+    const ext = icon.startsWith("a_") ? "gif" : "webp";
+    return `https://cdn.discordapp.com/icons/${guildId}/${icon}.${ext}?size=${size}`;
+}
+
+export function channelIconUrl(channelId: string, icon: string | null | undefined, size = 64): string | null {
+    if (!icon) return null;
+    return `https://cdn.discordapp.com/channel-icons/${channelId}/${icon}.webp?size=${size}`;
+}

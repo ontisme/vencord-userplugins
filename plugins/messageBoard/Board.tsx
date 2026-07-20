@@ -13,7 +13,7 @@ import {
     UserStore, useState
 } from "@webpack/common";
 
-import { avatarUrl } from "../_shared/avatar";
+import { avatarUrl, channelIconUrl, guildIconUrl } from "../_shared/avatar";
 import {
     addToBlacklist, ChannelMeta, flush, getChannelIndex, markOpened, readPage,
     StoredMessage, subscribe
@@ -21,17 +21,42 @@ import {
 
 const NotificationSettingsActions = findByPropsLazy("updateChannelOverrideSettings");
 
-function channelNames(channelId: string): { title: string; subtitle: string | null; } {
+interface ChannelHeader {
+    title: string;
+    subtitle: string | null;
+    iconUrl: string | null;
+    initial: string;
+}
+
+function channelHeader(channelId: string): ChannelHeader {
     const channel = ChannelStore.getChannel(channelId);
-    if (!channel) return { title: "未知頻道", subtitle: null };
+    if (!channel) return { title: "未知頻道", subtitle: null, iconUrl: null, initial: "?" };
     if (channel.guild_id) {
         const guild = GuildStore.getGuild(channel.guild_id);
-        return { title: "#" + channel.name, subtitle: guild?.name ?? null };
+        return {
+            title: "#" + channel.name,
+            subtitle: guild?.name ?? null,
+            iconUrl: guild ? guildIconUrl(channel.guild_id, guild.icon) : null,
+            initial: (guild?.name ?? "#").slice(0, 1).toUpperCase()
+        };
     }
-    if (channel.name) return { title: channel.name, subtitle: "群組訊息" };
+    if (channel.name) {
+        return {
+            title: channel.name,
+            subtitle: "群組訊息",
+            iconUrl: channelIconUrl(channel.id, (channel as any).icon),
+            initial: channel.name.slice(0, 1).toUpperCase()
+        };
+    }
     const userId = (channel as any).recipients?.[0];
     const user = userId ? UserStore.getUser(userId) : null;
-    return { title: (user as any)?.globalName ?? user?.username ?? "私訊", subtitle: "私人訊息" };
+    const name = (user as any)?.globalName ?? user?.username ?? "私訊";
+    return {
+        title: name,
+        subtitle: "私人訊息",
+        iconUrl: user ? avatarUrl(user.id, (user as any).avatar, 64) : null,
+        initial: name.slice(0, 1).toUpperCase()
+    };
 }
 
 function formatTime(ts: number): string {
@@ -169,7 +194,7 @@ function ChannelCard({ meta }: { meta: ChannelMeta; }) {
 
     const channel = ChannelStore.getChannel(meta.channelId);
     const guildId = channel?.guild_id ?? null;
-    const { title, subtitle } = channelNames(meta.channelId);
+    const { title, subtitle, iconUrl, initial } = channelHeader(meta.channelId);
 
     return (
         <div className="vc-msgboard-card">
@@ -178,6 +203,9 @@ function ChannelCard({ meta }: { meta: ChannelMeta; }) {
                 onClick={() => ChannelRouter.transitionToChannel(meta.channelId)}
                 onContextMenu={e => openChannelMenu(e, meta.channelId, guildId)}
             >
+                {iconUrl
+                    ? <img className="vc-msgboard-card-icon" src={iconUrl} alt="" />
+                    : <span className="vc-msgboard-card-icon vc-msgboard-card-icon-fallback">{initial}</span>}
                 <div className="vc-msgboard-card-titles">
                     <span className="vc-msgboard-card-title">{title}</span>
                     {subtitle && <span className="vc-msgboard-card-subtitle">{subtitle}</span>}
