@@ -1,0 +1,38 @@
+.vc-favchan-section {
+    padding: 8px 8px 4px;
+    border-bottom: 1px solid var(--background-modifier-accent);
+}
+.vc-favchan-header {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--channels-default);
+    padding: 0 8px 4px;
+}
+.vc-favchan-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--channels-default);
+}
+.vc-favchan-row:hover { background: var(--background-modifier-hover); }
+.vc-favchan-selected { background: var(--background-modifier-selected); color: var(--interactive-active); }
+.vc-favchan-unread { color: var(--interactive-active); font-weight: 600; }
+.vc-favchan-hash { opacity: 0.6; }
+.vc-favchan-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.vc-favchan-badge {
+    background: var(--status-danger);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
