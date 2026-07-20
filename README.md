@@ -51,7 +51,10 @@ This clones the pinned Vencord version, injects the plugins, and produces `dist/
 For a fast iteration loop, link `plugins\` into a local Vencord clone and run the watcher:
 
 ```
-cmd /c mklink /J "<repo>\Vencord\src\userplugins" "<repo>\plugins"
+git clone https://github.com/ontisme/vencord-userplugins
+cd vencord-userplugins
+git clone https://github.com/Vendicated/Vencord
+cmd /c mklink /J "Vencord\src\userplugins" "%CD%\plugins"
 cd Vencord && pnpm install && pnpm watch
 ```
 

@@ -51,7 +51,10 @@ bash scripts/build-dist.sh
 開發迭代用 junction 把 `plugins\` 接進本機 Vencord clone,配合 watcher 即時重建:
 
 ```
-cmd /c mklink /J "<repo>\Vencord\src\userplugins" "<repo>\plugins"
+git clone https://github.com/ontisme/vencord-userplugins
+cd vencord-userplugins
+git clone https://github.com/Vendicated/Vencord
+cmd /c mklink /J "Vencord\src\userplugins" "%CD%\plugins"
 cd Vencord && pnpm install && pnpm watch
 ```
 
