@@ -1,0 +1,156 @@
+/* Discord 畫面內可拖曳浮層,fixed 定位於 UI 最上層 */
+.vc-vsp-overlay {
+    position: fixed;
+    z-index: 3000;
+    display: flex;
+    flex-direction: column;
+    min-width: 160px;
+    min-height: 120px;
+    max-width: 90vw;
+    max-height: 90vh;
+    background: var(--background-base-lowest);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    user-select: none;
+    /* 可從右下角拖曳縮放 */
+    resize: both;
+}
+
+.vc-vsp-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 12px;
+    background: var(--background-surface-high);
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: grab;
+    touch-action: none;
+}
+.vc-vsp-header:active { cursor: grabbing; }
+.vc-vsp-header-title {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.vc-vsp-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    color: var(--text-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.vc-vsp-close:hover {
+    background: var(--background-mod-strong);
+    color: var(--text-default);
+}
+
+.vc-vsp-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding: 10px;
+    color: var(--text-default);
+}
+.vc-vsp-body::-webkit-scrollbar { display: none; }
+
+.vc-vsp-empty {
+    color: var(--text-muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 16px 0;
+}
+
+.vc-vsp-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-content: flex-start;
+}
+.vc-vsp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.vc-vsp-member {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.vc-vsp-member:hover {
+    background: var(--background-mod-subtle);
+}
+/* hover 時頭像輕微放大(不與說話效果衝突) */
+.vc-vsp-member:hover .vc-vsp-avatar-wrap:not(.vc-vsp-speaking) {
+    transform: scale(1.04);
+}
+
+.vc-vsp-avatar-wrap {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.15s, filter 0.15s;
+}
+.vc-vsp-speaking {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 3px #23a55a;
+}
+.vc-vsp-quiet {
+    opacity: 0.55;
+    filter: grayscale(0.5);
+}
+.vc-vsp-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+}
+.vc-vsp-avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    background: var(--background-surface-higher);
+    color: var(--text-default);
+}
+
+.vc-vsp-status {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--status-danger);
+    color: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--background-base-lowest);
+}
+
+.vc-vsp-name {
+    font-size: 13px;
+    color: var(--text-default);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.vc-vsp-grid .vc-vsp-name { display: none; }
