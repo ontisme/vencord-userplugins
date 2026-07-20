@@ -1,11 +1,17 @@
-import { findByPropsLazy } from "@webpack";
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
+import ErrorBoundary from "@components/ErrorBoundary";
 import { sendMessage } from "@utils/discord";
+import { findByPropsLazy } from "@webpack";
 import {
     ChannelStore, closeModal, ContextMenuApi, GuildStore, Menu, Modal, moment,
     NavigationRouter, openModal, React, TextInput, Toasts, useEffect, useReducer,
     UserStore, useState
 } from "@webpack/common";
-import ErrorBoundary from "@components/ErrorBoundary";
 
 import {
     addToBlacklist, ChannelMeta, flush, getChannelIndex, markOpened, readPage,

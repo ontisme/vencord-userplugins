@@ -1,8 +1,13 @@
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
+
 import "./styles.css";
 
-import { PropsWithChildren } from "react";
-
 import definePlugin from "@utils/types";
+import { PropsWithChildren } from "react";
 
 import { TabBar } from "./TabBar";
 import { loadTabs, openTab, pruneInvalidTabs, restoreLastChannel } from "./tabs";

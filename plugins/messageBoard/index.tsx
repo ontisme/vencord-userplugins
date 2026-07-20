@@ -1,11 +1,16 @@
-import "./styles.css";
+/*
+ * Vencord, a Discord client mod
+ * Copyright (c) 2026 Vendicated and contributors
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ */
 
-import { PropsWithChildren } from "react";
+import "./styles.css";
 
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { findComponentByCodeLazy } from "@webpack";
 import { useEffect, useReducer } from "@webpack/common";
+import { PropsWithChildren } from "react";
 
 import { openBoard } from "./BoardModal";
 import { flush, getNewActivityCount, handleMessage, init, stopFlushing, subscribe } from "./storage";
