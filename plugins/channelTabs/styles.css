@@ -10,6 +10,12 @@
     grid-row-start: tabsEnd !important;
 }
 
+/* 分頁列與下方內容(伺服器列/側欄)之間留間距,避免貼齊造成擁擠感 */
+[class*="base_"]:has(> .vc-chtabs-bar) [class*="guilds__"],
+[class*="base_"]:has(> .vc-chtabs-bar) [class*="sidebarList__"] {
+    padding-top: 8px;
+}
+
 .vc-chtabs-bar {
     grid-column: 1 / -1;
     grid-row: titleBarEnd / tabsEnd;
