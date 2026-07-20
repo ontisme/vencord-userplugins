@@ -7,6 +7,8 @@
 import * as DataStore from "@api/DataStore";
 import { ChannelStore, RelationshipStore, UserGuildSettingsStore, UserStore } from "@webpack/common";
 
+import { createListenerRegistry } from "../_shared/listeners";
+
 const META_KEY = "MessageBoard_meta";
 const INDEX_KEY = "MessageBoard_index";
 const msgKey = (channelId: string) => `MessageBoard_msgs_${channelId}`;
@@ -43,16 +45,9 @@ let index: ChannelMeta[] = [];
 let pending: StoredMessage[] = [];
 const newActivityChannels = new Set<string>();
 let flushTimer: ReturnType<typeof setInterval> | null = null;
-const listeners = new Set<() => void>();
+const { subscribe, emit } = createListenerRegistry();
 
-function emit() {
-    for (const cb of listeners) cb();
-}
-
-export function subscribe(cb: () => void): () => void {
-    listeners.add(cb);
-    return () => listeners.delete(cb);
-}
+export { subscribe };
 
 export async function init(): Promise<void> {
     const storedMeta = await DataStore.get<Meta>(META_KEY);

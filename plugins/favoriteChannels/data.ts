@@ -6,21 +6,16 @@
 
 import * as DataStore from "@api/DataStore";
 
+import { createListenerRegistry } from "../_shared/listeners";
+
 const KEY = "FavoriteChannels_data";
 
 type FavoritesData = Record<string, string[]>;
 
 let favorites: FavoritesData = {};
-const listeners = new Set<() => void>();
+const { subscribe, emit } = createListenerRegistry();
 
-function emit() {
-    for (const cb of listeners) cb();
-}
-
-export function subscribe(cb: () => void): () => void {
-    listeners.add(cb);
-    return () => listeners.delete(cb);
-}
+export { subscribe };
 
 export async function loadFavorites(): Promise<void> {
     const stored = await DataStore.get<FavoritesData>(KEY);

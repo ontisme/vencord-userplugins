@@ -7,6 +7,8 @@
 import * as DataStore from "@api/DataStore";
 import { ChannelRouter, ChannelStore } from "@webpack/common";
 
+import { createListenerRegistry } from "../_shared/listeners";
+
 const KEY = "ChannelTabs_data";
 
 interface TabsData {
@@ -15,12 +17,10 @@ interface TabsData {
 }
 
 let state: TabsData = { tabs: [], activeTab: null };
-const listeners = new Set<() => void>();
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
+const { subscribe, emit } = createListenerRegistry();
 
-function emit() {
-    for (const cb of listeners) cb();
-}
+export { subscribe };
 
 function persistSoon() {
     if (persistTimer) clearTimeout(persistTimer);
@@ -28,11 +28,6 @@ function persistSoon() {
         persistTimer = null;
         DataStore.set(KEY, state);
     }, 500);
-}
-
-export function subscribe(cb: () => void): () => void {
-    listeners.add(cb);
-    return () => listeners.delete(cb);
 }
 
 export function getTabs(): string[] {
