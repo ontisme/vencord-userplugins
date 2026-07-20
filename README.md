@@ -1,107 +1,92 @@
-# Discord 自製客戶端
+# vencord-userplugins
 
-Vesktop + 自建 Vencord。四個自訂外掛(FavoriteChannels、FavoriteServers、ChannelTabs、MessageBoard)以 Vencord userplugin 形式打包,發佈到 GitHub Release。
+**English** | [繁體中文](README.zh-TW.md)
 
-## 一鍵安裝(使用者)
+A collection of [Vencord](https://github.com/Vendicated/Vencord) userplugins, distributed as a prepackaged Vencord build for [Vesktop](https://github.com/Vencord/Vesktop).
 
-在 PowerShell 執行(先確認 install.ps1 內的 `$Repo` 已填正確的 owner/repo):
+The plugins are developed and tested against a pinned Vencord version (see [Building](#building)), and every push to `main` automatically produces an installable build via GitHub Actions.
 
-```powershell
-iwr -useb https://raw.githubusercontent.com/<owner>/<repo>/main/install.ps1 | iex
-```
+## Plugins
 
-腳本會:自動安裝 Vesktop(若未裝)-> 下載最新 Release 的 dist -> 解壓到 `%LOCALAPPDATA%\CustomVencord\dist` -> 設定 Vesktop 指向它。
-完成後**完全重啟 Vesktop**,到設定 -> Plugins 啟用四個外掛即可。
+| Plugin | Description |
+|--------|-------------|
+| FavoriteChannels | Right-click any channel to favorite it; favorites are pinned at the top of the server's channel list. |
+| FavoriteServers | A standalone favorite-server rail on the far left of the window, with drag-and-drop ordering and folder grouping. |
+| ChannelTabs | A per-server tab bar below the title bar (icon + name). Clicking a tab returns to the last visited channel of that server. Tabs compress and scroll horizontally when crowded; layout is restored across restarts. |
+| MessageBoard | A "message wall" tab on the Friends page showing cards from unmuted channels, with virtualized rendering, quick reply, jump-to-message, and per-channel/per-server mute and hide management. |
+| VoiceSpeakerPopout | A draggable, resizable in-app overlay showing voice channel members with live speaking indicators, mute/deafen status, self mute/deafen controls, and the native member context menu (including the per-user volume slider). |
 
-手動安裝:到 Release 下載 `vencord-custom-dist.zip`,解壓後把 Vesktop 設定 -> Vesktop 分頁 -> Developer Options -> Vencord Location 指向解壓資料夾。
+## Installation
 
-## 發佈(維護者)
-
-每次 `git push` 到 main,GitHub Actions(`.github/workflows/build.yml`)會自動建置並更新 `latest` Release 的 dist。無需手動操作。
-
-首次設定:
-1. 建立 GitHub repo,`git remote add origin ...` 後 push
-2. 把 `install.ps1` 內 `$Repo` 改成你的 `owner/repo`
-3. push 後 Actions 自動產出第一個 Release
-
-## 目錄結構
-
-```
-plugins\                  自訂外掛原始碼(git 追蹤)
-scripts\build-dist.sh     建置腳本:clone 鎖定版 Vencord、套入外掛、產出 dist(CI 與本機共用)
-install.ps1               使用者一鍵安裝腳本
-.github\workflows\        GitHub Actions 自動建置
-Vencord\                  本機開發用的 Vencord clone(git 忽略)
-docs\superpowers\         設計規格與實作計畫
-```
-
-Vencord 版本鎖定在 `scripts\build-dist.sh` 的 `VENCORD_COMMIT`(目前 0a5dfaa,v1.14.16)。升級時更新此值並重測 patch。
-
-## 建置(維護者)
-
-一次性乾淨建置(等同 CI):
-
-Windows(PowerShell,無需 bash):
+Run in PowerShell:
 
 ```powershell
+iwr -useb https://raw.githubusercontent.com/ontisme/vencord-userplugins/main/install.ps1 | iex
+```
+
+The script installs Vesktop if needed, downloads the latest release build, extracts it to `%LOCALAPPDATA%\CustomVencord\dist`, and points Vesktop at it. Fully restart Vesktop afterwards, then enable the plugins under Settings -> Plugins.
+
+Manual install: download `vencord-custom-dist.zip` from the latest release, extract it anywhere, and set Vesktop Settings -> Vesktop -> Developer Options -> Vencord Location to the extracted folder.
+
+## Building
+
+Requirements: Node >= 22, pnpm 11.9.0, git.
+
+A clean one-shot build (same as CI):
+
+```powershell
+# Windows
 powershell -ExecutionPolicy Bypass -File scripts\build-dist.ps1
 ```
 
-其他平台(bash):
+```bash
+# Other platforms
+bash scripts/build-dist.sh
+```
+
+This clones the pinned Vencord version, injects the plugins, and produces `dist/` ready to be mounted by Vesktop. The Vencord version is pinned via `VENCORD_COMMIT` in `scripts/build-dist.sh` (currently `0a5dfaa`, v1.14.16). When bumping it, re-test all patches.
+
+## Development
+
+For a fast iteration loop, link `plugins\` into a local Vencord clone and run the watcher:
 
 ```
-bash scripts/build-dist.sh   # 產出 dist/,可直接給 Vesktop 掛載
-```
-
-需求:Node >= 22、pnpm 11.9.0、git。(CI 用 .sh 版;`.ps1` 與 `.sh` 邏輯等價)
-
-## 本機開發迭代
-
-開發時用 junction 讓 `plugins\` 直接對應 Vencord 的 userplugins,配合 `pnpm watch` 即時重建:
-
-```
-cmd /c mklink /J "D:\Codes\Projects\Discord\Vencord\src\userplugins" "D:\Codes\Projects\Discord\plugins"
+cmd /c mklink /J "<repo>\Vencord\src\userplugins" "<repo>\plugins"
 cd Vencord && pnpm install && pnpm watch
 ```
 
-Vesktop 設定 -> Developer Options -> Vencord Location 指向 `Vencord\dist`,改完在 Discord 內 Ctrl+R 重載。
+Point Vesktop's Vencord Location at `Vencord\dist`, then reload Discord with Ctrl+R after each change.
 
-注意:junction 真實檔案方向為 `plugins\` -> `Vencord\src\userplugins`(esbuild alias 需在 src 樹內)。git checkout / merge 切分支時可能把 junction 換成真實目錄,發生時把檔案移回後重建 junction。
+Note on the junction: esbuild path aliases (`@webpack` etc.) only resolve inside the Vencord source tree, so the junction must point from `Vencord\src\userplugins` to `plugins\` (real files stay in `plugins\`). `git checkout` / `git merge` can occasionally replace the junction with a real directory; if that happens, move the files back and recreate the junction.
 
-## 開發迭代
+## When a Discord update breaks a patch
 
-`pnpm watch` 常駐 + Vesktop 內 Ctrl+R 重載即可看到變更。
+Discord ships frequently and webpack module anchors can drift. If a plugin stops working:
 
-## 外掛一覽
+1. Search the console for `Patch by` warnings to identify the failing patch, or `Didn't find module` errors for failing webpack finds.
+2. Use Vencord's built-in Patch Helper (Settings -> Patch Helper) to re-test find/match/replace.
+3. Or re-locate anchors in DevTools with `Vencord.Webpack.search("<string>")` and `Vencord.Webpack.findModuleFactory("<string>").toString()`.
+4. Update the anchor strings in the plugin, rebuild, and restart.
 
-| 外掛 | 功能 | DataStore 鍵 |
-|------|------|--------------|
-| FavoriteChannels | 右鍵頻道加入最愛,置頂顯示於該伺服器頻道列表頂端 | `FavoriteChannels_data` |
-| FavoriteServers | 視窗最左獨立的最愛伺服器列,支援拖曳排序與資料夾分組;右鍵伺服器加入/移除 | `FavoriteServers_data` |
-| ChannelTabs | 伺服器分頁列(標題列下方整列,icon + 名稱),點擊回到該伺服器最後停留頻道;分頁過多時擠壓+橫向捲動;可拖曳/右鍵關閉;重啟還原 | `ChannelTabs_guildTabs` |
-| MessageBoard | 好友頁「動態磚」分頁:未靜音頻道訊息牆,卡片虛擬化(不可見不渲染);新訊息淡入+重排動畫;快速回覆/跳轉;右鍵靜音/隱藏頻道/隱藏整個伺服器;管理介面(動態磚右上角按鈕 + Vencord 外掛設定頁)可逐項解除或一鍵清空黑名單 | `MessageBoard_meta`、`MessageBoard_index`、`MessageBoard_msgs_<channelId>` |
+Known anchors and conventions are documented in the plugin sources themselves.
 
-三個外掛皆已在 Vesktop 實機驗證通過(2026-07-20)。
-
-## 已知注意事項
-
-- 本專案使用 Discord 新版 CSS 變數(如 `--background-base-low`、`--background-surface-higher`、`--text-default`、`--background-mod-subtle`)。舊版變數(`--background-secondary`、`--interactive-normal`、`--header-primary` 等)在現行 Discord 已失效解析為空,請勿使用。
-- patch 錨點:ChannelTabs 注入 app base 佈局(`find: /"data-fullscreen":\i,children:\[!\i&&/`)、MessageBoard 注入好友頁(`find: '"pendingFriends"'`)、FavoriteChannels 注入頻道列表(`find: '"guild-channels")'`)。Discord 更新導致失效時依下節重新探勘。
-
-## Discord 更新導致 patch 失效時
-
-1. Console 搜尋 "Patch by" 警告確認哪個 patch 失效
-2. 開啟 Vencord 設定內的 Patch Helper,重新測試 find/match/replace
-3. 或在 DevTools 用 `Vencord.Webpack.search("<字串>")` 與 `Vencord.Webpack.findModuleFactory("<字串>").toString()` 重新定位錨點
-4. 更新外掛內對應的 patch 字串後 `pnpm build` 並重啟
-
-若 junction 不存在(例如重新 clone 後),重建:
+## Project layout
 
 ```
-cmd /c mklink /J "D:\Codes\Projects\Discord\plugins" "D:\Codes\Projects\Discord\Vencord\src\userplugins"
+plugins\                  Plugin sources (tracked)
+scripts\build-dist.sh     Clean build: clone pinned Vencord, inject plugins, emit dist/ (shared by CI and local)
+scripts\build-dist.ps1    PowerShell equivalent of build-dist.sh
+install.ps1               One-shot user install script
+.github\workflows\        CI: build and update the latest release on every push to main
+docs\                     Design specs and implementation notes
+Vencord\                  Local Vencord clone for development (ignored)
 ```
 
-注意方向:真實檔案在 Vencord\src\userplugins,`plugins\` 只是入口。
+## Notes
 
-注意:git checkout / merge 切換分支時可能把 `plugins\` junction 換成真實目錄。
-若發生,把檔案移回 `Vencord\src\userplugins` 後依上述指令重建 junction。
+- The plugins use Discord's current CSS variables (`--background-base-low`, `--background-surface-higher`, `--text-default`, `--background-mod-subtle`, ...). Legacy variables (`--background-secondary`, `--interactive-normal`, `--header-primary`, ...) resolve to nothing in current Discord and must not be used.
+- All plugins are verified on Vesktop against the pinned Vencord version before being merged to `main`.
+
+## License
+
+GPL-3.0-or-later, matching Vencord.

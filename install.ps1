@@ -4,9 +4,7 @@
 
 $ErrorActionPreference = "Stop"
 
-# ===== 設定:推上 GitHub 後把這行改成你的 owner/repo =====
-$Repo = "REPLACE_ME_GITHUB_REPO"   # 例如 "ontisme/discord-custom-vencord"
-# ========================================================
+$Repo = "ontisme/vencord-userplugins"
 
 $InstallDir = Join-Path $env:LOCALAPPDATA "CustomVencord\dist"
 $StatePath  = Join-Path $env:APPDATA "vesktop\state.json"
