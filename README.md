@@ -37,15 +37,16 @@ pnpm build          # 或 pnpm watch 持續建置
 
 | 外掛 | 功能 | DataStore 鍵 |
 |------|------|--------------|
-| FavoriteChannels | 右鍵頻道加入最愛,置頂顯示於該伺服器頻道列表 | `FavoriteChannels_data` |
-| ChannelTabs | 瀏覽器式頻道分頁(標題列),重啟還原 | `ChannelTabs_data` |
-| MessageBoard | 訊息動態磚:未靜音頻道訊息牆,快速回覆/跳轉/右鍵靜音 | `MessageBoard_meta`、`MessageBoard_index`、`MessageBoard_msgs_<channelId>` |
+| FavoriteChannels | 右鍵頻道加入最愛,置頂顯示於該伺服器頻道列表頂端 | `FavoriteChannels_data` |
+| ChannelTabs | 伺服器分頁列(標題列下方整列,icon + 名稱),點擊回到該伺服器最後停留頻道,重啟還原 | `ChannelTabs_guildTabs` |
+| MessageBoard | 好友頁「動態磚」分頁:未靜音頻道訊息牆,快速回覆/跳轉/右鍵靜音 | `MessageBoard_meta`、`MessageBoard_index`、`MessageBoard_msgs_<channelId>` |
+
+三個外掛皆已在 Vesktop 實機驗證通過(2026-07-20)。
 
 ## 已知注意事項
 
-- MessageBoard 與內建 VencordToolbox 外掛 patch 同一個標題列位置,兩者同時啟用時後套用者會失效(僅警告,不影響其他功能)。擇一啟用即可。
-- FavoriteChannels 的置頂區注入 patch 尚待 runtime 錨點探勘(需登入後用 Patch Helper 定位頻道列表模組),完成前右鍵加入最愛與資料持久化已可用,但列表頂端不會顯示最愛區。
-- ChannelTabs 的標題列 leading 區 match 與 MessageBoard 的靜音 API 參數形狀,首次登入後需依實際 bundle 驗證。
+- 本專案使用 Discord 新版 CSS 變數(如 `--background-base-low`、`--background-surface-higher`、`--text-default`、`--background-mod-subtle`)。舊版變數(`--background-secondary`、`--interactive-normal`、`--header-primary` 等)在現行 Discord 已失效解析為空,請勿使用。
+- patch 錨點:ChannelTabs 注入 app base 佈局(`find: /"data-fullscreen":\i,children:\[!\i&&/`)、MessageBoard 注入好友頁(`find: '"pendingFriends"'`)、FavoriteChannels 注入頻道列表(`find: '"guild-channels")'`)。Discord 更新導致失效時依下節重新探勘。
 
 ## Discord 更新導致 patch 失效時
 
