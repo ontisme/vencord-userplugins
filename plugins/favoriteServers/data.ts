@@ -138,7 +138,7 @@ export function reorderItem(fromId: string, toId: string, after = false): void {
     if (from === -1) return;
     const [moved] = items.splice(from, 1);
     const to = items.findIndex(it => it.id === toId);
-    if (to === -1) { items.splice(from, 0, moved); return; } // 目標不存在,還原
+    if (to === -1) return; // 目標不存在,data.items 未更動,無需還原
     items.splice(after ? to + 1 : to, 0, moved);
     data.items = items.filter(it => !(it.type === "folder" && it.guildIds.length === 0));
     emit();

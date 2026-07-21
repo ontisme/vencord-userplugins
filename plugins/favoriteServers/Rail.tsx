@@ -127,11 +127,11 @@ function computeIntent(x: number, y: number, draggedId: string): DropIntent {
     return null;
 }
 
-// 依意圖在對應元素套視覺指示
+// 依意圖在對應元素套視覺指示。intent.id 對 before/after 是 guild id,對 into-folder
+// 是 folder id,兩者皆帶 data-favsrv-id,故單一選擇器即可命中。
 function applyIntentHighlight(intent: DropIntent) {
     if (!intent) return;
-    const el = document.querySelector(`[data-favsrv-drop][data-favsrv-id="${intent.id}"]`)
-        ?? (intent.kind === "into-folder" ? document.querySelector(`[data-favsrv-drop="folder"][data-favsrv-id="${intent.id}"]`) : null);
+    const el = document.querySelector(`[data-favsrv-drop][data-favsrv-id="${intent.id}"]`);
     if (!el) return;
     if (intent.kind === "before") el.classList.add("vc-favsrv-drop-before");
     else if (intent.kind === "after") el.classList.add("vc-favsrv-drop-after");
