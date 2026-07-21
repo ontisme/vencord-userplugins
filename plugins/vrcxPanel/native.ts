@@ -267,20 +267,24 @@ export async function getLiveFriends(): Promise<{ me: Friend | null; groups: Fri
     const byId = new Map<string, Friend>();
     for (const f of [...onlineList, ...activeList, ...offlineList]) byId.set(f.userId, f);
 
-    // 去重:收藏成員只顯示在 FAVORITES,從 online/active/offline 移除(對齊 VRCX)
-    const favIds = new Set<string>();
+    // 收藏分組只顯示「在線」的收藏好友;離線的收藏好友仍歸 OFFLINE。
+    // 因此 favIds 只收在線收藏好友,用於從 ONLINE/ACTIVE 去重(避免重複),OFFLINE 不去重。
+    const favOnlineIds = new Set<string>();
     const groups: FriendGroup[] = [];
     if (favGroups) {
         for (const g of favGroups) {
-            const members = g.userIds.map(id => byId.get(id)).filter((f): f is Friend => f != null);
-            for (const m of members) favIds.add(m.userId);
+            const members = g.userIds
+                .map(id => byId.get(id))
+                .filter((f): f is Friend => f != null && f.state === "online");
+            for (const m of members) favOnlineIds.add(m.userId);
             if (members.length) groups.push({ key: `favorites:${g.name}`, title: g.displayName, friends: members });
         }
     }
-    const notFav = (f: Friend) => !favIds.has(f.userId);
-    groups.push({ key: "online", title: "ONLINE", friends: onlineList.filter(notFav) });
-    groups.push({ key: "active", title: "ACTIVE", friends: activeList.filter(notFav) });
-    groups.push({ key: "offline", title: "OFFLINE", friends: offlineList.filter(notFav) });
+    const notFavOnline = (f: Friend) => !favOnlineIds.has(f.userId);
+    groups.push({ key: "online", title: "ONLINE", friends: onlineList.filter(notFavOnline) });
+    groups.push({ key: "active", title: "ACTIVE", friends: activeList.filter(notFavOnline) });
+    // OFFLINE 含所有離線好友(含離線的收藏好友)
+    groups.push({ key: "offline", title: "OFFLINE", friends: offlineList });
 
     const me: Friend | null = meUser ? {
         userId: meUser.id,
