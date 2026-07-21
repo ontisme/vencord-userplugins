@@ -307,8 +307,7 @@ function readTrustMap(db: Db): Map<string, string> {
 // 由 VRChat tags 推 trust 等級(users/{id} 與部分好友資料含 system_trust_*)
 function trustFromTags(u: { tags?: string[]; }): string {
     const tags = u.tags ?? [];
-    if (tags.includes("system_trust_veteran")) return "Trusted User";
-    if (tags.includes("system_trust_trusted")) return "Trusted User";
+    if (tags.includes("system_trust_veteran") || tags.includes("system_trust_trusted")) return "Trusted User";
     if (tags.includes("system_trust_known")) return "Known User";
     if (tags.includes("system_trust_basic")) return "User";
     if (tags.includes("system_trust_intermediate")) return "New User";

@@ -192,7 +192,8 @@ function Group({ group, collapsible, onOpen }: { group: FriendGroup; collapsible
 }
 
 function Sidebar({ onOpen }: { onOpen: (f: Friend) => void; }) {
-    const groups = useMemo(() => sortGroups(getGroups()), [getGroups()]);
+    const rawGroups = getGroups();
+    const groups = useMemo(() => sortGroups(rawGroups), [rawGroups]);
     const me = getMe();
     const usingApi = isUsingApi();
     const total = useMemo(() => groups.reduce((n, g) => n + g.friends.length, 0), [groups]);
@@ -288,7 +289,7 @@ function UserDialog({ friend, onClose }: { friend: Friend; onClose: () => void; 
         const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
         document.addEventListener("keydown", onKey);
         return () => document.removeEventListener("keydown", onKey);
-    }, []);
+    }, [onClose]);
 
     const loc = parseLocation(info?.location ?? friend.lastLocation);
     const trust = info?.trustLevel || friend.trustLevel;
