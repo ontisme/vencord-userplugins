@@ -1,14 +1,3 @@
-/* 覆蓋層:填滿好友內容容器,蓋住原生好友清單 */
-:has(> .vc-vrcx-overlay) {
-    position: relative;
-}
-.vc-vrcx-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    background: var(--background-base-low);
-}
-
 /* VRCX 面板:左 Feed 表格 + 右好友側欄,填滿好友頁內容區 */
 .vc-vrcx-panel {
     display: flex;

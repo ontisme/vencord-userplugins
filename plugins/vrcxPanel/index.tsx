@@ -10,7 +10,7 @@ import { findByPropsLazy } from "@webpack";
 import definePlugin from "@utils/types";
 
 import { checkAvailable } from "./data";
-import { TabLabel } from "./Panel";
+import { Panel } from "./Panel";
 
 export const VRCX_SECTION = "VC_VRCX_PANEL";
 
@@ -33,13 +33,31 @@ export default definePlugin({
 
     patches: [
         {
-            // 好友頁模組(唯一含 "pendingFriends"):分頁列最前面插入 VRCX 分頁。
-            // 內容不走 Discord 內部 section switch(易碎且已因改版失效),
-            // 改由分頁 content 元件偵測選中後 portal 覆蓋內容區(見 Panel.tsx)。
+            // 好友頁模組(唯一含 "pendingFriends")
             find: '"pendingFriends"',
+            replacement: [
+                {
+                    // 分頁列:在最前面(線上分頁之前)插入 VRCX 分頁
+                    match: /(?=\{id:\i\.\i\.ONLINE,show:)/,
+                    replace: "$self.makeTab(),"
+                },
+                {
+                    // 內容區:整個內容區由賦值三元式 k=section===ADD_FRIEND?<新增好友>:<好友清單> 決定。
+                    // 前綴用 [=:] 匹配:原始碼是 "k=section===ADD_FRIEND?",
+                    // 若 messageBoard 已先疊一層則變 ":section===ADD_FRIEND?",兩種皆可命中,
+                    // 疊加後 VRCX 分支為最外層之一,選中 VRCX 時渲染面板取代整個內容區。
+                    match: /([=:])(\i)===(\i\.\i)\.ADD_FRIEND\?/,
+                    replace: `$1$2==="${VRCX_SECTION}"?$self.renderPanel():$2===$3.ADD_FRIEND?`
+                }
+            ]
+        },
+        {
+            // empty-state 模組:需認得 VRCX section,否則切到 VRCX 時 throw "Invalid empty state"。
+            // 讓 VRCX 比照 ONLINE 的空狀態處理(實際內容已由上面的面板覆蓋,不會顯示空狀態)。
+            find: "FriendsEmptyState: Invalid empty state",
             replacement: {
-                match: /(?=\{id:\i\.\i\.ONLINE,show:)/,
-                replace: "$self.makeTab(),"
+                match: /case (\i\.\i)\.ONLINE:(?=return (?:\i)\.SECTION_ONLINE)/,
+                replace: `case"${VRCX_SECTION}":case $1.ONLINE:`
             }
         }
     ],
@@ -48,8 +66,12 @@ export default definePlugin({
         return {
             id: VRCX_SECTION,
             show: true,
-            content: <TabLabel />
+            content: <span>VRCX</span>
         };
+    },
+
+    renderPanel() {
+        return <Panel />;
     },
 
     flux: {
