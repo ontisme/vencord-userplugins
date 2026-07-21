@@ -13,14 +13,16 @@ export interface ParsedLocation {
     flag: string | null;         // 對應 region 的國旗 emoji
 }
 
-// region -> 國旗 emoji(VRChat 主要區域)
-const REGION_FLAG: Record<string, string> = {
-    us: "🇺🇸", // 美
-    use: "🇺🇸",
-    usw: "🇺🇸",
-    eu: "🇪🇺", // 歐盟
-    jp: "🇯🇵" // 日
+// VRChat region -> ISO 3166-1 alpha-2 國碼(供組國旗圖片 URL)
+const REGION_CC: Record<string, string> = {
+    us: "us", use: "us", usw: "us",
+    eu: "eu", jp: "jp"
 };
+
+// 國碼 -> 國旗圖片 URL(flagcdn,SVG)。eu 用歐盟旗。
+export function flagUrl(cc: string): string {
+    return `https://flagcdn.com/${cc}.svg`;
+}
 
 export function parseLocation(location: string | null): ParsedLocation {
     const empty: ParsedLocation = { instanceType: null, region: null, flag: null };
@@ -29,7 +31,7 @@ export function parseLocation(location: string | null): ParsedLocation {
     // region
     const regionMatch = location.match(/~region\(([^)]+)\)/);
     const region = regionMatch ? regionMatch[1].toLowerCase() : "us"; // 無標記預設 us(VRChat 預設)
-    const flag = REGION_FLAG[region] ?? REGION_FLAG.us;
+    const flag = REGION_CC[region] ?? "us"; // flag 欄位改存國碼,前端用 flagUrl() 組圖片
 
     // instance 類型:依 location 標記(order 依 VRChat 存取層級)
     let instanceType: string;

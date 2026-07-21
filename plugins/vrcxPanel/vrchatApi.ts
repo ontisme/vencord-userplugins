@@ -135,6 +135,14 @@ export interface ApiUser {
     last_activity?: string;
     date_joined?: string;
     representedGroup?: { name?: string; iconUrl?: string; memberCount?: number; };
+    note?: string;
+    pronouns?: string;
+    ageVerified?: boolean;
+    allowAvatarCopying?: boolean;
+    friendRequestStatus?: string;
+    platform?: string;
+    last_platform?: string;
+    languages?: string[];
 }
 
 // 單一使用者詳情(Info dialog);按需(點好友時)拉一次

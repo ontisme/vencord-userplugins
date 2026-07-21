@@ -17,6 +17,8 @@ import { type ApiFriend, apiAvailable, type ApiUser, type FavoriteGroup, fetchCu
 CspPolicies["api.vrchat.cloud"] = ["img-src"];
 CspPolicies["files.vrchat.cloud"] = ["img-src"];
 CspPolicies["*.vrchat.cloud"] = ["img-src"];
+// 國旗圖片(flagcdn);Windows 字體不渲染 emoji 國旗,改用圖片
+CspPolicies["flagcdn.com"] = ["img-src"];
 
 const DB_PATH = join(process.env.APPDATA ?? "", "VRCX", "VRCX.sqlite3");
 
@@ -388,6 +390,13 @@ export interface UserInfo {
     lastLogin: string | null;
     lastActivity: string | null;
     dateJoined: string | null;
+    note: string;
+    pronouns: string;
+    ageVerified: boolean;
+    allowAvatarCopying: boolean;
+    friendRequestStatus: string;   // completed(已是好友) / null
+    platform: string;
+    languages: string[];
 }
 
 // 按需(點好友時)拉單一使用者詳情,供 Info dialog。API 不可用回 null。
@@ -413,6 +422,13 @@ export async function getUser(_: IpcMainInvokeEvent, userId: string): Promise<Us
         representedGroup: u.representedGroup?.name ?? null,
         lastLogin: u.last_login ?? null,
         lastActivity: u.last_activity ?? null,
-        dateJoined: u.date_joined ?? null
+        dateJoined: u.date_joined ?? null,
+        note: s(u.note),
+        pronouns: s(u.pronouns),
+        ageVerified: !!u.ageVerified,
+        allowAvatarCopying: !!u.allowAvatarCopying,
+        friendRequestStatus: s(u.friendRequestStatus),
+        platform: s(u.last_platform || u.platform),
+        languages: (u.tags ?? []).filter(t => t.startsWith("language_")).map(t => t.replace("language_", ""))
     };
 }

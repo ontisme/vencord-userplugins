@@ -12,7 +12,7 @@ import {
     getFeedSearch, getFilter, getFriendSearch, getGroups, getMe, isAvailable, isUsingApi,
     reloadFriends, setFeedSearch, setFilter, setFriendSearch, start, stop, subscribe, type UserInfo
 } from "./data";
-import { Icon } from "./icons";
+import { Flag, Icon, platformFor } from "./icons";
 import { locationLabel, parseLocation, statusDotClass, trustColor } from "./location";
 
 const FILTERS: Array<{ key: FeedType | "all"; label: string; }> = [
@@ -154,7 +154,7 @@ function FeedDetail({ entry }: { entry: FeedEntry; }) {
     const loc = parseLocation(entry.location);
     return (
         <>
-            {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+            {loc.flag && <Flag cc={loc.flag} />}
             <span className="vc-vrcx-detail-text">{entry.detail}</span>
             {loc.instanceType && <span className="vc-vrcx-inst"> · {loc.instanceType}</span>}
         </>
@@ -280,7 +280,7 @@ function FriendRow({ friend, onOpen }: { friend: Friend; onOpen: (f: Friend) => 
             <div className="vc-vrcx-friend-text">
                 <span className="vc-vrcx-friend-name" style={{ color: trustColor(friend.trustLevel) }}>{friend.displayName}</span>
                 <span className="vc-vrcx-friend-loc">
-                    {showFlag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+                    {showFlag && loc.flag && <Flag cc={loc.flag} />}
                     {secondLine}
                 </span>
             </div>
@@ -423,6 +423,26 @@ function fmtDateTime(iso: string | null): string {
     return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
+function DialogField({ label, children }: { label: string; children: any; }) {
+    return (
+        <div className="vc-vrcx-dialog-field">
+            <div className="vc-vrcx-dialog-label">{label}</div>
+            <div>{children}</div>
+        </div>
+    );
+}
+
+// LINKS 項:社群平台顯示品牌圖示 + 平台名,其餘顯示外鏈圖示 + URL
+function LinkChip({ url }: { url: string; }) {
+    const platform = platformFor(url);
+    return (
+        <a className="vc-vrcx-link-chip" href={url} target="_blank" rel="noreferrer">
+            {platform ? <platform.icon size={16} /> : <Icon.ExternalLink size={14} />}
+            <span>{platform ? platform.name : url}</span>
+        </a>
+    );
+}
+
 function UserDialog({ friend, onClose }: { friend: Friend; onClose: () => void; }) {
     const [info, setInfo] = useState<UserInfo | null>(null);
     const [loading, setLoading] = useState(true);
@@ -465,19 +485,26 @@ function UserDialog({ friend, onClose }: { friend: Friend; onClose: () => void; 
 
                 <div className="vc-vrcx-dialog-body">
                     <div className="vc-vrcx-dialog-loc">
-                        {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+                        {loc.flag && <Flag cc={loc.flag} />}
                         {locationLabel(info?.location ?? friend.lastLocation, friend.lastWorld, friend.state)}
                     </div>
 
-                    <div className="vc-vrcx-dialog-field">
-                        <div className="vc-vrcx-dialog-label">Bio</div>
-                        <div className="vc-vrcx-dialog-bio">{loading ? "載入中…" : statVal(info?.bio ?? null)}</div>
-                    </div>
+                    <DialogField label="Note">{statVal(info?.note ?? null)}</DialogField>
 
                     {info?.representedGroup && (
+                        <DialogField label="Represented Group">{info.representedGroup}</DialogField>
+                    )}
+
+                    <DialogField label="Bio">
+                        <span className="vc-vrcx-dialog-bio">{loading ? "載入中…" : statVal(info?.bio ?? null)}</span>
+                    </DialogField>
+
+                    {info && info.bioLinks.length > 0 && (
                         <div className="vc-vrcx-dialog-field">
-                            <div className="vc-vrcx-dialog-label">Represented Group</div>
-                            <div>{info.representedGroup}</div>
+                            <div className="vc-vrcx-dialog-label">Links</div>
+                            <div className="vc-vrcx-dialog-links">
+                                {info.bioLinks.map((l, i) => <LinkChip key={i} url={l} />)}
+                            </div>
                         </div>
                     )}
 
@@ -485,14 +512,20 @@ function UserDialog({ friend, onClose }: { friend: Friend; onClose: () => void; 
                         <div><div className="vc-vrcx-dialog-label">Last Seen</div><div>{fmtDateTime(info?.lastLogin ?? null)}</div></div>
                         <div><div className="vc-vrcx-dialog-label">Last Activity</div><div>{fmtDateTime(info?.lastActivity ?? null)}</div></div>
                         <div><div className="vc-vrcx-dialog-label">Date Joined</div><div>{statVal(info?.dateJoined ?? null)}</div></div>
+                        <div><div className="vc-vrcx-dialog-label">Platform</div><div>{statVal(info?.platform ?? null)}</div></div>
+                        <div><div className="vc-vrcx-dialog-label">Pronouns</div><div>{statVal(info?.pronouns ?? null)}</div></div>
+                        <div><div className="vc-vrcx-dialog-label">Avatar Cloning</div><div>{info?.allowAvatarCopying ? "Allow" : "Deny"}</div></div>
                     </div>
 
-                    {info && info.bioLinks.length > 0 && (
-                        <div className="vc-vrcx-dialog-field">
-                            <div className="vc-vrcx-dialog-label">Links</div>
-                            {info.bioLinks.map((l, i) => <div key={i} className="vc-vrcx-dialog-link">{l}</div>)}
+                    <div className="vc-vrcx-dialog-field">
+                        <div className="vc-vrcx-dialog-label">User ID</div>
+                        <div className="vc-vrcx-dialog-uid">
+                            <span>{friend.userId}</span>
+                            <button className="vc-vrcx-copy" title="複製" onClick={() => navigator.clipboard?.writeText(friend.userId)}>
+                                <Icon.Copy size={14} />
+                            </button>
                         </div>
-                    )}
+                    </div>
                 </div>
             </div>
         </div>

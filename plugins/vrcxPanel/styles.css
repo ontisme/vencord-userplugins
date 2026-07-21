@@ -126,7 +126,15 @@
     color: #d6d9dd;
 }
 .vc-vrcx-detail-text { overflow: hidden; text-overflow: ellipsis; }
-.vc-vrcx-flag { flex-shrink: 0; font-size: 14px; line-height: 1; }
+/* 國旗圖片(flagcdn),取代 emoji */
+.vc-vrcx-flag-img {
+    flex-shrink: 0;
+    width: 18px;
+    height: 13px;
+    border-radius: 2px;
+    object-fit: cover;
+    vertical-align: middle;
+}
 .vc-vrcx-inst { color: #8a8d93; flex-shrink: 0; }
 
 .vc-vrcx-c-caret { cursor: default; }
@@ -428,4 +436,44 @@
     gap: 12px;
     font-size: 13px;
 }
-.vc-vrcx-dialog-link { font-size: 12px; color: #4a9eff; word-break: break-all; }
+/* LINKS 平台 chip */
+.vc-vrcx-dialog-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.vc-vrcx-link-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: #26262b;
+    color: #cfd2d6;
+    font-size: 12px;
+    text-decoration: none;
+    max-width: 260px;
+}
+.vc-vrcx-link-chip:hover { background: #303035; color: var(--text-default); }
+.vc-vrcx-link-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* User ID + 複製 */
+.vc-vrcx-dialog-uid {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #cfd2d6;
+    font-family: var(--font-code, monospace);
+}
+.vc-vrcx-copy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 6px;
+    background: #26262b;
+    color: #8a8d93;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.vc-vrcx-copy:hover { background: #303035; color: #cfd2d6; }
