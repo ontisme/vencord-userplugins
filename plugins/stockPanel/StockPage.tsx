@@ -122,14 +122,6 @@ function StockPage() {
 
     return (
         <div className="vc-stock-page">
-            <div className="vc-stock-header">
-                <span className="vc-stock-title">股票查詢</span>
-                <button className="vc-stock-close" aria-label="關閉" onClick={() => setOpen(false)}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.3 5.7L12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" />
-                    </svg>
-                </button>
-            </div>
             <div className="vc-stock-host" ref={hostRef}>
                 <span className="vc-stock-loading">TradingView 載入中</span>
             </div>

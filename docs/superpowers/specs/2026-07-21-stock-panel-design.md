@@ -40,7 +40,7 @@ plugins/stockPanel/
 ## 5. 頁面(StockPage)
 
 - 開啟:`ReactDOM.createPortal` 到 `[class*="page_"]` 容器,`position: absolute; inset: 0` 全版覆蓋主內容區;側欄與伺服器列保持可見可點
-- 頂欄:標題「股票查詢」+ 關閉(X)按鈕;其餘空間為 host 區域,顯示「TradingView 載入中」置中提示
+- 無頂欄:整個區域即 host,顯示「TradingView 載入中」置中提示直到 WebContentsView 覆蓋;關閉改由 ESC / 切頻道 / 點側欄連結 / 再點一次「股票」入口
 - host 區域掛載後量測 `getBoundingClientRect`,IPC 呼叫 native `openChart(bounds, url)`;`ResizeObserver` 與 window resize 時 `setChartBounds` 同步座標;卸載時 `closeChart`
 - URL:`https://tw.tradingview.com/chart/?symbol=TWSE%3A2330`(zh_TW 介面,預設台積電);完整站自行記憶主題與最後檢視的 symbol
 - 換股票:完整站內建 symbol search,涵蓋所有市場

@@ -12,40 +12,6 @@
     background: var(--background-base-low);
 }
 
-.vc-stock-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 48px;
-    padding: 0 16px;
-    border-bottom: 1px solid var(--border-subtle);
-    flex-shrink: 0;
-}
-
-.vc-stock-title {
-    color: var(--text-default);
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.vc-stock-close {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
-}
-
-.vc-stock-close:hover {
-    background: var(--background-mod-subtle);
-    color: var(--text-default);
-}
-
 .vc-stock-host {
     flex: 1;
     display: flex;
