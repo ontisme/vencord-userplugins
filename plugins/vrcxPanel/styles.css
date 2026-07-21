@@ -1,0 +1,179 @@
+/* VRCX 面板:左 Feed 表格 + 右好友側欄,填滿好友頁內容區 */
+.vc-vrcx-panel {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    color: var(--text-default);
+}
+
+.vc-vrcx-empty {
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* 左側 Feed */
+.vc-vrcx-feed {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 12px;
+    gap: 10px;
+}
+
+.vc-vrcx-filters {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+.vc-vrcx-filter {
+    height: 28px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 6px;
+    background: var(--background-surface-higher);
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+}
+.vc-vrcx-filter:hover { background: var(--background-surface-highest); color: var(--text-default); }
+.vc-vrcx-filter-active { background: var(--brand-500); color: var(--white); }
+
+.vc-vrcx-table {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.vc-vrcx-body {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.vc-vrcx-row {
+    display: grid;
+    grid-template-columns: 96px 92px 150px 1fr;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 13px;
+}
+.vc-vrcx-head {
+    position: sticky;
+    top: 0;
+    background: var(--background-surface-high);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.vc-vrcx-body .vc-vrcx-row:hover { background: var(--background-mod-subtle); }
+
+.vc-vrcx-c-date { color: var(--text-muted); white-space: nowrap; }
+.vc-vrcx-c-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vc-vrcx-c-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-default); }
+.vc-vrcx-inst { color: var(--text-muted); }
+
+.vc-vrcx-tag {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--background-surface-highest);
+    color: var(--text-default);
+}
+.vc-vrcx-tag-gps { background: color-mix(in oklab, #5865f2 30%, transparent); }
+.vc-vrcx-tag-online { background: color-mix(in oklab, #23a55a 30%, transparent); }
+.vc-vrcx-tag-offline { background: color-mix(in oklab, #80848e 30%, transparent); }
+.vc-vrcx-tag-status { background: color-mix(in oklab, #f0b232 30%, transparent); }
+.vc-vrcx-tag-avatar { background: color-mix(in oklab, #eb459e 30%, transparent); }
+.vc-vrcx-tag-bio { background: color-mix(in oklab, #00a8fc 30%, transparent); }
+
+.vc-vrcx-more {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+.vc-vrcx-more button {
+    height: 30px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 6px;
+    background: var(--background-surface-higher);
+    color: var(--text-default);
+    cursor: pointer;
+}
+.vc-vrcx-more button:hover { background: var(--background-surface-highest); }
+
+/* 右側好友側欄 */
+.vc-vrcx-sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--border-subtle);
+    padding: 12px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+.vc-vrcx-side-head {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+.vc-vrcx-side-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+.vc-vrcx-group-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 12px 0 6px;
+}
+
+.vc-vrcx-friend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px;
+    border-radius: 6px;
+}
+.vc-vrcx-friend:hover { background: var(--background-mod-subtle); }
+.vc-vrcx-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.vc-vrcx-dot-online { background: #23a55a; }
+.vc-vrcx-dot-offline { background: #80848e; }
+.vc-vrcx-dot-unknown { background: var(--background-surface-highest); }
+.vc-vrcx-friend-text { display: flex; flex-direction: column; min-width: 0; }
+.vc-vrcx-friend-name {
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.vc-vrcx-friend-loc {
+    font-size: 11px;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

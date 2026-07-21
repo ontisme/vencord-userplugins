@@ -37,9 +37,11 @@ export default definePlugin({
                     replace: "$self.makeTab(),"
                 },
                 {
-                    // 內容區:選中動態磚分頁時渲染看板
-                    match: /(\i)=(\i)===(\i\.\i\.ADD_FRIEND)\?/,
-                    replace: `$1=$2==="${BOARD_SECTION}"?$self.renderBoard():$2===$3?`
+                    // 內容區:選中動態磚分頁時渲染看板。
+                    // 只匹配 "===ADD_FRIEND?" 分支本身(不含前面的賦值),
+                    // 讓本 patch 與 vrcxPanel 同錨點時可各自疊加一層三元式,不受套用順序影響。
+                    match: /(\i)===(\i\.\i\.ADD_FRIEND)\?/,
+                    replace: `$1==="${BOARD_SECTION}"?$self.renderBoard():$1===$2?`
                 }
             ]
         }
