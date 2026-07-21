@@ -112,9 +112,41 @@ export interface ApiFriend {
     currentAvatarThumbnailImageUrl?: string;
     userIcon?: string;
     profilePicOverride?: string;
-    status?: string;
+    status?: string;             // join me / active / ask me / busy / offline
+    statusDescription?: string;
     location?: string;
-    state?: string; // online / active / offline
+    state?: string;              // online / active / offline
+}
+
+export interface ApiUser {
+    id: string;
+    displayName: string;
+    tags?: string[];
+    status?: string;
+    statusDescription?: string;
+    bio?: string;
+    bioLinks?: string[];
+    location?: string;
+    currentAvatarImageUrl?: string;
+    currentAvatarThumbnailImageUrl?: string;
+    userIcon?: string;
+    profilePicOverride?: string;
+    last_login?: string;
+    last_activity?: string;
+    date_joined?: string;
+    representedGroup?: { name?: string; iconUrl?: string; memberCount?: number; };
+}
+
+// 單一使用者詳情(Info dialog);按需(點好友時)拉一次
+export async function fetchUser(deps: ApiDeps, userId: string): Promise<ApiUser | null> {
+    const u = await apiGet(`users/${encodeURIComponent(userId)}`, deps);
+    return u && typeof u === "object" ? u as ApiUser : null;
+}
+
+// 目前登入者(ME 分組);與好友清單同批拉
+export async function fetchCurrentUser(deps: ApiDeps): Promise<ApiUser | null> {
+    const u = await apiGet("auth/user", deps);
+    return u && typeof u === "object" && u.id ? u as ApiUser : null;
 }
 
 // 好友清單(含即時狀態與頭像)。offline=false 拿線上,offline=true 拿離線。

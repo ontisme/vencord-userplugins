@@ -6,14 +6,20 @@
 
 import type { PluginNative } from "@utils/types";
 
-import type { FeedEntry, FeedType, Friend, FriendGroup } from "./native";
+import type { FeedEntry, FeedType, Friend, FriendGroup, UserInfo } from "./native";
 
 const Native = VencordNative.pluginHelpers.VrcxPanel as PluginNative<typeof import("./native")>;
 
-export type { FeedEntry, FeedType, Friend, FriendGroup };
+export type { FeedEntry, FeedType, Friend, FriendGroup, UserInfo };
+
+// 按需:點好友時拉一次詳情(Info dialog)
+export function fetchUserInfo(userId: string): Promise<UserInfo | null> {
+    return Native.getUser(userId).catch(() => null);
+}
 
 let feed: FeedEntry[] = [];
 let groups: FriendGroup[] = [];
+let me: Friend | null = null;
 let usingApi = false; // 好友側欄是否為 API 即時資料
 let available = false;
 let filter: FeedType | "all" = "all";
@@ -36,6 +42,9 @@ export function getFeed(): FeedEntry[] {
 }
 export function getGroups(): FriendGroup[] {
     return groups;
+}
+export function getMe(): Friend | null {
+    return me;
 }
 export function isUsingApi(): boolean {
     return usingApi;
@@ -84,6 +93,7 @@ async function loadFriends() {
         const live = await Native.getLiveFriends();
         if (live) {
             groups = live.groups.filter(g => g.friends.length > 0);
+            me = live.me;
             usingApi = true;
             emit();
             return;
@@ -99,6 +109,7 @@ async function loadFriends() {
             { key: "online", title: "ONLINE", friends: online },
             { key: "offline", title: "OFFLINE", friends: offline }
         ].filter(g => g.friends.length > 0);
+        me = null;
         usingApi = false;
     } catch { /* ignore */ }
     emit();

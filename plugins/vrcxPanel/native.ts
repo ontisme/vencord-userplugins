@@ -10,7 +10,7 @@ import { existsSync } from "fs";
 import { join } from "path";
 
 import { type Db, openDb } from "./sqlite";
-import { type ApiFriend, apiAvailable, type FavoriteGroup, fetchFavoriteFriends, fetchFriends } from "./vrchatApi";
+import { type ApiFriend, apiAvailable, type ApiUser, type FavoriteGroup, fetchCurrentUser, fetchFavoriteFriends, fetchFriends, fetchUser } from "./vrchatApi";
 
 // VRChat 頭像與縮圖 CDN;需重啟 Vesktop 生效。
 // api.vrchat.cloud 的 image 端點會 302 轉址到 files.vrchat.cloud,兩者都要放行。
@@ -58,6 +58,7 @@ export interface Friend {
     trustLevel: string;
     friendNumber: number;
     state: "online" | "offline" | "unknown";
+    status: string;             // join me / active / ask me / busy / offline(VRChat status)
     lastLocation: string | null;
     lastWorld: string | null;
     lastSeen: string | null;
@@ -204,6 +205,7 @@ export function getFriends(): Friend[] {
                 trustLevel: s(r[2]),
                 friendNumber: Number(r[3]) || 0,
                 state: st?.state ?? "unknown",
+                status: "",
                 lastLocation: location,
                 lastWorld: world,
                 lastSeen,
@@ -230,9 +232,10 @@ export async function getLiveFriends(): Promise<{ me: Friend | null; groups: Fri
     const deps = { readCookieRaw: () => cookieRaw };
     if (!apiAvailable(deps)) return null;
 
-    const [online, offline] = await Promise.all([
+    const [online, offline, meUser] = await Promise.all([
         fetchFriends(deps, false),
-        fetchFriends(deps, true)
+        fetchFriends(deps, true),
+        fetchCurrentUser(deps)
     ]);
     // 任一關鍵請求失敗(null:認證失效/限流)就整體降級,避免顯示不完整清單並誤標 usingApi
     if (online == null || offline == null) return null;
@@ -248,6 +251,7 @@ export async function getLiveFriends(): Promise<{ me: Friend | null; groups: Fri
         trustLevel: trustFromDb.get(u.id) ?? "",
         friendNumber: 0,
         state: friendState(u),
+        status: u.status ?? "",
         lastLocation: u.location ?? null,
         lastWorld: null,
         lastSeen: null,
@@ -274,10 +278,23 @@ export async function getLiveFriends(): Promise<{ me: Friend | null; groups: Fri
     groups.push({ key: "active", title: "ACTIVE", friends: activeList });
     groups.push({ key: "offline", title: "OFFLINE", friends: offlineList });
 
-    return { me: null, groups };
+    const me: Friend | null = meUser ? {
+        userId: meUser.id,
+        displayName: meUser.displayName,
+        trustLevel: trustFromTags(meUser),
+        friendNumber: 0,
+        state: "online",
+        status: s(meUser.status),
+        lastLocation: meUser.location ?? null,
+        lastWorld: null,
+        lastSeen: null,
+        thumbnail: meUser.currentAvatarThumbnailImageUrl ?? meUser.currentAvatarImageUrl ?? meUser.userIcon ?? null
+    } : null;
+
+    return { me, groups };
 }
 
-// 由 friend_log_current 建 userId -> trustLevel 對照(API 不含 trust)。共用已開啟的 db。
+// 由 friend_log_current 建 userId -> trustLevel 對照(好友清單 API 不含 trust)。共用已開啟的 db。
 function readTrustMap(db: Db): Map<string, string> {
     const map = new Map<string, string>();
     const prefix = findPrefix(db);
@@ -285,4 +302,59 @@ function readTrustMap(db: Db): Map<string, string> {
     const t = db.tables[prefix + "_friend_log_current"];
     if (t) for (const [, r] of collect(db, t)) map.set(s(r[0]), s(r[2]));
     return map;
+}
+
+// 由 VRChat tags 推 trust 等級(users/{id} 與部分好友資料含 system_trust_*)
+function trustFromTags(u: { tags?: string[]; }): string {
+    const tags = u.tags ?? [];
+    if (tags.includes("system_trust_veteran")) return "Trusted User";
+    if (tags.includes("system_trust_trusted")) return "Trusted User";
+    if (tags.includes("system_trust_known")) return "Known User";
+    if (tags.includes("system_trust_basic")) return "User";
+    if (tags.includes("system_trust_intermediate")) return "New User";
+    if (tags.includes("system_troll")) return "Nuisance User";
+    return "Visitor";
+}
+
+export interface UserInfo {
+    userId: string;
+    displayName: string;
+    trustLevel: string;
+    status: string;
+    statusDescription: string;
+    bio: string;
+    bioLinks: string[];
+    location: string | null;
+    avatarImageUrl: string | null;
+    representedGroup: string | null;
+    lastLogin: string | null;
+    lastActivity: string | null;
+    dateJoined: string | null;
+}
+
+// 按需(點好友時)拉單一使用者詳情,供 Info dialog。API 不可用回 null。
+export async function getUser(_: IpcMainInvokeEvent, userId: string): Promise<UserInfo | null> {
+    const db = openDbSafe();
+    if (!db) return null;
+    const cookieRaw = readCookieRaw(db);
+    const deps = { readCookieRaw: () => cookieRaw };
+    if (!apiAvailable(deps)) return null;
+
+    const u: ApiUser | null = await fetchUser(deps, userId);
+    if (!u) return null;
+    return {
+        userId: u.id,
+        displayName: u.displayName,
+        trustLevel: trustFromTags(u),
+        status: s(u.status),
+        statusDescription: s(u.statusDescription),
+        bio: s(u.bio),
+        bioLinks: Array.isArray(u.bioLinks) ? u.bioLinks : [],
+        location: u.location ?? null,
+        avatarImageUrl: u.currentAvatarThumbnailImageUrl ?? u.currentAvatarImageUrl ?? u.userIcon ?? null,
+        representedGroup: u.representedGroup?.name ?? null,
+        lastLogin: u.last_login ?? null,
+        lastActivity: u.last_activity ?? null,
+        dateJoined: u.date_joined ?? null
+    };
 }

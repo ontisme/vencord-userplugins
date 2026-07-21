@@ -8,10 +8,11 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { useEffect, useMemo, useReducer, useState } from "@webpack/common";
 
 import {
-    type FeedEntry, type FeedType, type Friend, getFeed, getFilter, getGroups,
-    isAvailable, isUsingApi, reloadFriends, setFilter, start, stop, subscribe
+    type FeedEntry, type FeedType, type Friend, type FriendGroup, fetchUserInfo, getFeed,
+    getFilter, getGroups, getMe, isAvailable, isUsingApi, reloadFriends, setFilter, start,
+    stop, subscribe, type UserInfo
 } from "./data";
-import { parseLocation, trustColor } from "./location";
+import { locationLabel, parseLocation, trustColor } from "./location";
 
 const FILTERS: Array<{ key: FeedType | "all"; label: string; }> = [
     { key: "all", label: "All" },
@@ -144,32 +145,55 @@ function Pager({ page, pageCount, onPage, total }: { page: number; pageCount: nu
 
 /* ---------- 好友側欄 ---------- */
 
-function FriendRow({ friend }: { friend: Friend; }) {
+function FriendRow({ friend, onOpen }: { friend: Friend; onOpen: (f: Friend) => void; }) {
     const loc = parseLocation(friend.lastLocation);
-    const detail = friend.lastWorld
-        ? friend.lastWorld + (loc.instanceType ? ` · ${loc.instanceType}` : "")
-        : null;
+    const detail = locationLabel(friend.lastLocation, friend.lastWorld, friend.state);
     return (
-        <div className="vc-vrcx-friend">
+        <div className="vc-vrcx-friend" onClick={() => onOpen(friend)}>
             <div className="vc-vrcx-friend-av">
                 <Avatar url={friend.thumbnail} name={friend.displayName} size={40} />
                 <span className={"vc-vrcx-status vc-vrcx-status-" + friend.state} />
             </div>
             <div className="vc-vrcx-friend-text">
                 <span className="vc-vrcx-friend-name" style={{ color: trustColor(friend.trustLevel) }}>{friend.displayName}</span>
-                {detail && (
-                    <span className="vc-vrcx-friend-loc">
-                        {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
-                        {detail}
-                    </span>
-                )}
+                <span className="vc-vrcx-friend-loc">
+                    {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+                    {detail}
+                </span>
             </div>
         </div>
     );
 }
 
-function Sidebar() {
-    const groups = getGroups();
+// 排序:ME > FAVORITES(子分組) > ONLINE > ACTIVE > OFFLINE
+const GROUP_ORDER = ["online", "active", "offline"];
+function sortGroups(groups: FriendGroup[]): FriendGroup[] {
+    const fav = groups.filter(g => g.key.startsWith("favorites:"));
+    const rest = GROUP_ORDER.map(k => groups.find(g => g.key === k)).filter((g): g is FriendGroup => g != null);
+    return [...fav, ...rest];
+}
+
+function Group({ group, collapsible, onOpen }: { group: FriendGroup; collapsible: boolean; onOpen: (f: Friend) => void; }) {
+    const [collapsed, setCollapsed] = useState(false);
+    return (
+        <div className="vc-vrcx-group">
+            <div
+                className={"vc-vrcx-group-title" + (collapsible ? " vc-vrcx-group-collapsible" : "")}
+                onClick={() => collapsible && setCollapsed(c => !c)}
+            >
+                {collapsible && (
+                    <svg className={"vc-vrcx-group-caret" + (collapsed ? "" : " vc-vrcx-group-open")} width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
+                )}
+                {group.title} — {group.friends.length}
+            </div>
+            {!collapsed && group.friends.map(f => <FriendRow key={group.key + f.userId} friend={f} onOpen={onOpen} />)}
+        </div>
+    );
+}
+
+function Sidebar({ onOpen }: { onOpen: (f: Friend) => void; }) {
+    const groups = useMemo(() => sortGroups(getGroups()), [getGroups()]);
+    const me = getMe();
     const usingApi = isUsingApi();
     const total = useMemo(() => groups.reduce((n, g) => n + g.friends.length, 0), [groups]);
     const onlineCount = useMemo(
@@ -187,11 +211,22 @@ function Sidebar() {
                     </svg>
                 </button>
             </div>
-            {groups.map(g => (
-                <div className="vc-vrcx-group" key={g.key}>
-                    <div className="vc-vrcx-group-title">{g.title} — {g.friends.length}</div>
-                    {g.friends.map(f => <FriendRow key={g.key + f.userId} friend={f} />)}
+            {me && (
+                <div className="vc-vrcx-group">
+                    <div className="vc-vrcx-group-title">ME</div>
+                    <FriendRow friend={me} onOpen={onOpen} />
                 </div>
+            )}
+            {groups.some(g => g.key.startsWith("favorites:")) && (
+                <div className="vc-vrcx-group-title vc-vrcx-fav-head">FAVORITES — {groups.filter(g => g.key.startsWith("favorites:")).length}</div>
+            )}
+            {groups.map(g => (
+                <Group
+                    key={g.key}
+                    group={g}
+                    collapsible={g.key === "active" || g.key === "offline"}
+                    onOpen={onOpen}
+                />
             ))}
         </div>
     );
@@ -199,6 +234,7 @@ function Sidebar() {
 
 function PanelInner() {
     const [, force] = useReducer(x => x + 1, 0);
+    const [dialogUser, setDialogUser] = useState<Friend | null>(null);
     useEffect(() => {
         const unsub = subscribe(force);
         start();
@@ -216,7 +252,97 @@ function PanelInner() {
     return (
         <div className="vc-vrcx-panel">
             <FeedTable />
-            <Sidebar />
+            <Sidebar onOpen={setDialogUser} />
+            {dialogUser && <UserDialog friend={dialogUser} onClose={() => setDialogUser(null)} />}
+        </div>
+    );
+}
+
+/* ---------- Info dialog ---------- */
+
+function statVal(v: string | null): string {
+    return v || "—";
+}
+function fmtDateTime(iso: string | null): string {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}/${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function UserDialog({ friend, onClose }: { friend: Friend; onClose: () => void; }) {
+    const [info, setInfo] = useState<UserInfo | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let alive = true;
+        setLoading(true);
+        fetchUserInfo(friend.userId).then(u => {
+            if (alive) { setInfo(u); setLoading(false); }
+        });
+        return () => { alive = false; };
+    }, [friend.userId]);
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+        document.addEventListener("keydown", onKey);
+        return () => document.removeEventListener("keydown", onKey);
+    }, []);
+
+    const loc = parseLocation(info?.location ?? friend.lastLocation);
+    const trust = info?.trustLevel || friend.trustLevel;
+
+    return (
+        <div className="vc-vrcx-overlay" onClick={onClose}>
+            <div className="vc-vrcx-dialog" onClick={e => e.stopPropagation()}>
+                <button className="vc-vrcx-dialog-close" onClick={onClose}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.3 5.7L12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
+                </button>
+                <div className="vc-vrcx-dialog-head">
+                    <img className="vc-vrcx-dialog-av" src={info?.avatarImageUrl ?? friend.thumbnail ?? ""} alt="" />
+                    <div className="vc-vrcx-dialog-headtext">
+                        <div className="vc-vrcx-dialog-name">
+                            <span className={"vc-vrcx-status vc-vrcx-status-" + friend.state} />
+                            <span style={{ color: trustColor(trust) }}>{friend.displayName}</span>
+                        </div>
+                        <span className="vc-vrcx-dialog-trust" style={{ color: trustColor(trust) }}>{trust || "—"}</span>
+                        {info?.statusDescription && <div className="vc-vrcx-dialog-statusdesc">{info.statusDescription}</div>}
+                    </div>
+                </div>
+
+                <div className="vc-vrcx-dialog-body">
+                    <div className="vc-vrcx-dialog-loc">
+                        {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+                        {locationLabel(info?.location ?? friend.lastLocation, friend.lastWorld, friend.state)}
+                    </div>
+
+                    <div className="vc-vrcx-dialog-field">
+                        <div className="vc-vrcx-dialog-label">Bio</div>
+                        <div className="vc-vrcx-dialog-bio">{loading ? "載入中…" : statVal(info?.bio ?? null)}</div>
+                    </div>
+
+                    {info?.representedGroup && (
+                        <div className="vc-vrcx-dialog-field">
+                            <div className="vc-vrcx-dialog-label">Represented Group</div>
+                            <div>{info.representedGroup}</div>
+                        </div>
+                    )}
+
+                    <div className="vc-vrcx-dialog-stats">
+                        <div><div className="vc-vrcx-dialog-label">Last Seen</div><div>{fmtDateTime(info?.lastLogin ?? null)}</div></div>
+                        <div><div className="vc-vrcx-dialog-label">Last Activity</div><div>{fmtDateTime(info?.lastActivity ?? null)}</div></div>
+                        <div><div className="vc-vrcx-dialog-label">Date Joined</div><div>{statVal(info?.dateJoined ?? null)}</div></div>
+                    </div>
+
+                    {info && info.bioLinks.length > 0 && (
+                        <div className="vc-vrcx-dialog-field">
+                            <div className="vc-vrcx-dialog-label">Links</div>
+                            {info.bioLinks.map((l, i) => <div key={i} className="vc-vrcx-dialog-link">{l}</div>)}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

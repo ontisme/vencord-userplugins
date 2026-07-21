@@ -182,12 +182,21 @@
 
 .vc-vrcx-group { margin-bottom: 8px; }
 .vc-vrcx-group-title {
+    display: flex;
+    align-items: center;
+    gap: 4px;
     font-size: 12px;
     font-weight: 700;
     color: #8a8d93;
     letter-spacing: 0.03em;
     margin: 10px 0 6px;
 }
+.vc-vrcx-group-collapsible { cursor: pointer; user-select: none; }
+.vc-vrcx-group-collapsible:hover { color: #cfd2d6; }
+.vc-vrcx-group-caret { transition: transform 0.12s; flex-shrink: 0; }
+.vc-vrcx-group-open { transform: rotate(90deg); }
+/* FAVORITES 母標題(其下為各收藏子分組) */
+.vc-vrcx-fav-head { color: #cfd2d6; margin-top: 12px; }
 
 .vc-vrcx-friend {
     display: flex;
@@ -195,6 +204,7 @@
     gap: 10px;
     padding: 5px 4px;
     border-radius: 6px;
+    cursor: pointer;
 }
 .vc-vrcx-friend:hover { background: #26262b; }
 
@@ -242,3 +252,96 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* ---------- Info dialog ---------- */
+.vc-vrcx-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+}
+.vc-vrcx-dialog {
+    position: relative;
+    width: 560px;
+    max-width: 90vw;
+    max-height: 82vh;
+    overflow-y: auto;
+    background: #202024;
+    border: 1px solid #303035;
+    border-radius: 12px;
+    padding: 20px;
+    color: var(--text-default);
+    scrollbar-width: thin;
+}
+.vc-vrcx-dialog-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: #2b2b30;
+    color: #cfd2d6;
+    cursor: pointer;
+}
+.vc-vrcx-dialog-close:hover { background: #34343a; }
+
+.vc-vrcx-dialog-head {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+.vc-vrcx-dialog-av {
+    width: 120px;
+    height: 120px;
+    border-radius: 10px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: #3a3a42;
+}
+.vc-vrcx-dialog-headtext { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; min-width: 0; }
+.vc-vrcx-dialog-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 20px;
+    font-weight: 700;
+}
+.vc-vrcx-dialog-name .vc-vrcx-status { position: static; border-width: 0; width: 11px; height: 11px; }
+.vc-vrcx-dialog-trust { font-size: 13px; font-weight: 600; }
+.vc-vrcx-dialog-statusdesc { font-size: 13px; color: #cfd2d6; }
+
+.vc-vrcx-dialog-body { display: flex; flex-direction: column; gap: 14px; }
+.vc-vrcx-dialog-loc {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: #d6d9dd;
+    padding: 8px 12px;
+    background: #26262b;
+    border-radius: 8px;
+}
+.vc-vrcx-dialog-field { display: flex; flex-direction: column; gap: 4px; }
+.vc-vrcx-dialog-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8a8d93;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.vc-vrcx-dialog-bio { font-size: 13px; color: #d6d9dd; white-space: pre-wrap; word-break: break-word; }
+.vc-vrcx-dialog-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    font-size: 13px;
+}
+.vc-vrcx-dialog-link { font-size: 12px; color: #4a9eff; word-break: break-all; }

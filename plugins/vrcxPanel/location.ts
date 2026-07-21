@@ -58,3 +58,15 @@ export function trustColor(trust: string): string {
         default: return "#8a6bde";             // 預設(未知/其他)紫
     }
 }
+
+// 側欄位置/狀態顯示文字(對齊 VRCX):location 為 VRChat API 原值,worldName 由前端可選補上。
+// private -> Private;offline/空 -> Offline;traveling -> 移動中;否則 world 名(+ instance 類型)。
+export function locationLabel(location: string | null, worldName: string | null, state: "online" | "offline" | "unknown"): string {
+    if (location === "private") return "Private";
+    if (location === "traveling") return "移動中";
+    if (state === "offline") return "Offline";
+    if (!location || location === "offline") return state === "online" ? "Online" : "Offline";
+    const { instanceType } = parseLocation(location);
+    const base = worldName || "私人世界";
+    return instanceType ? `${base} · ${instanceType}` : base;
+}
