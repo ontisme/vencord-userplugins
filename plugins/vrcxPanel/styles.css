@@ -49,6 +49,33 @@
 .vc-vrcx-filter:hover { background: #2b2b30; }
 .vc-vrcx-filter-active { background: #4a63d8; color: #fff; }
 
+/* 搜尋框(Feed toolbar 與側欄共用) */
+.vc-vrcx-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: #202024;
+    border: 1px solid #303035;
+    color: #8a8d93;
+}
+.vc-vrcx-search-input {
+    border: none;
+    background: transparent;
+    outline: none;
+    color: var(--text-default);
+    font-size: 13px;
+    width: 100%;
+    min-width: 0;
+}
+.vc-vrcx-search-input::placeholder { color: #6a6d73; }
+/* Feed toolbar 的搜尋靠右、有最小寬度 */
+.vc-vrcx-toolbar .vc-vrcx-search { margin-left: auto; width: 200px; }
+/* 側欄搜尋:整寬,置於標題下方 */
+.vc-vrcx-search-side { margin-bottom: 10px; }
+
 .vc-vrcx-table {
     flex: 1;
     display: flex;

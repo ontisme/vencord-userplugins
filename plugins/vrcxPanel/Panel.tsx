@@ -9,9 +9,10 @@ import { useEffect, useMemo, useReducer, useState } from "@webpack/common";
 
 import {
     type FeedEntry, type FeedType, type Friend, type FriendGroup, fetchUserInfo, getFeed,
-    getFilter, getGroups, getMe, isAvailable, isUsingApi, reloadFriends, setFilter, start,
-    stop, subscribe, type UserInfo
+    getFeedSearch, getFilter, getFriendSearch, getGroups, getMe, isAvailable, isUsingApi,
+    reloadFriends, setFeedSearch, setFilter, setFriendSearch, start, stop, subscribe, type UserInfo
 } from "./data";
+import { Icon } from "./icons";
 import { locationLabel, parseLocation, statusDotClass, trustColor } from "./location";
 
 const FILTERS: Array<{ key: FeedType | "all"; label: string; }> = [
@@ -79,6 +80,15 @@ function FeedTable() {
                         </button>
                     ))}
                 </div>
+                <div className="vc-vrcx-search">
+                    <Icon.Search size={14} />
+                    <input
+                        className="vc-vrcx-search-input"
+                        placeholder="搜尋"
+                        value={getFeedSearch()}
+                        onChange={e => { setFeedSearch(e.currentTarget.value); setPage(0); }}
+                    />
+                </div>
             </div>
             <div className="vc-vrcx-table">
                 <div className="vc-vrcx-row vc-vrcx-head">
@@ -128,7 +138,7 @@ function FeedDetail({ entry }: { entry: FeedEntry; }) {
             return (
                 <span className="vc-vrcx-detail-status">
                     <StatusDot status={entry.previousStatus} />
-                    <svg className="vc-vrcx-arrow" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h14M13 6l6 6-6 6" /></svg>
+                    <Icon.ArrowRight size={14} className="vc-vrcx-arrow" />
                     <StatusDot status={entry.status ?? ""} />
                 </span>
             );
@@ -158,7 +168,7 @@ function FeedExpanded({ entry }: { entry: FeedEntry; }) {
             <div className="vc-vrcx-expand">
                 <span className="vc-vrcx-detail-text">{entry.previousLocation}</span>
                 {entry.time ? <span className="vc-vrcx-time-badge">{timeToText(entry.time)}</span> : null}
-                <svg className="vc-vrcx-arrow" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4v14M6 13l6 6 6-6" /></svg>
+                <Icon.ArrowDown size={14} className="vc-vrcx-arrow" />
                 <span className="vc-vrcx-detail-text">{entry.worldName || entry.location}</span>
             </div>
         );
@@ -170,7 +180,7 @@ function FeedExpanded({ entry }: { entry: FeedEntry; }) {
         return (
             <div className="vc-vrcx-expand vc-vrcx-expand-av">
                 {entry.previousAvatarThumbnail && <img src={entry.previousAvatarThumbnail} alt="" />}
-                {entry.previousAvatarThumbnail && <svg className="vc-vrcx-arrow" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h14M13 6l6 6-6 6" /></svg>}
+                {entry.previousAvatarThumbnail && <Icon.ArrowRight size={16} className="vc-vrcx-arrow" />}
                 {entry.avatarThumbnail && <img src={entry.avatarThumbnail} alt="" />}
                 <span className="vc-vrcx-detail-text">{entry.avatarName}</span>
             </div>
@@ -180,7 +190,7 @@ function FeedExpanded({ entry }: { entry: FeedEntry; }) {
         return (
             <div className="vc-vrcx-expand">
                 <StatusDot status={entry.previousStatus ?? ""} /><span className="vc-vrcx-detail-text">{entry.previousStatusDescription}</span>
-                <svg className="vc-vrcx-arrow" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h14M13 6l6 6-6 6" /></svg>
+                <Icon.ArrowRight size={14} className="vc-vrcx-arrow" />
                 <StatusDot status={entry.status ?? ""} /><span className="vc-vrcx-detail-text">{entry.statusDescription}</span>
             </div>
         );
@@ -210,9 +220,7 @@ function FeedRow({ entry }: { entry: FeedEntry; }) {
         <>
             <div className={"vc-vrcx-row" + (canExpand ? " vc-vrcx-row-expandable" : "")} onClick={() => canExpand && setExpanded(e => !e)}>
                 <span className="vc-vrcx-c-caret">
-                    {canExpand && (
-                        <svg className={"vc-vrcx-caret" + (expanded ? " vc-vrcx-caret-open" : "")} width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
-                    )}
+                    {canExpand && <Icon.ChevronRight size={12} className={"vc-vrcx-caret" + (expanded ? " vc-vrcx-caret-open" : "")} />}
                 </span>
                 <span className="vc-vrcx-c-date">{fmtDate(entry.createdAt)}</span>
                 <span className="vc-vrcx-c-type">
@@ -304,7 +312,7 @@ function Group({ title, friends, keyPrefix, onOpen, headClass, defaultCollapsed 
                 className={"vc-vrcx-group-title vc-vrcx-group-collapsible" + (headClass ? " " + headClass : "")}
                 onClick={() => setCollapsed(c => !c)}
             >
-                <svg className={"vc-vrcx-group-caret" + (collapsed ? "" : " vc-vrcx-group-open")} width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
+                <Icon.ChevronRight size={12} className={"vc-vrcx-group-caret" + (collapsed ? "" : " vc-vrcx-group-open")} />
                 {title} — {friends.length}
             </div>
             {!collapsed && friends.map(f => <FriendRow key={keyPrefix + f.userId} friend={f} onOpen={onOpen} />)}
@@ -319,7 +327,7 @@ function FavoritesSection({ favGroups, onOpen }: { favGroups: FriendGroup[]; onO
     return (
         <div className="vc-vrcx-group">
             <div className="vc-vrcx-group-title vc-vrcx-group-collapsible vc-vrcx-fav-head" onClick={() => setCollapsed(c => !c)}>
-                <svg className={"vc-vrcx-group-caret" + (collapsed ? "" : " vc-vrcx-group-open")} width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
+                <Icon.ChevronRight size={12} className={"vc-vrcx-group-caret" + (collapsed ? "" : " vc-vrcx-group-open")} />
                 FAVORITES — {count}
             </div>
             {!collapsed && favGroups.map(g => (
@@ -349,10 +357,17 @@ function Sidebar({ onOpen }: { onOpen: (f: Friend) => void; }) {
             <div className="vc-vrcx-side-head">
                 <span className="vc-vrcx-side-tab vc-vrcx-side-tab-active">好友 ({onlineCount}/{total})</span>
                 <button className="vc-vrcx-reload" title={usingApi ? "重新整理" : "資料庫推估,點擊嘗試連線"} onClick={() => reloadFriends()}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M17.65 6.35A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.35 2.35z" />
-                    </svg>
+                    <Icon.RefreshCw size={14} />
                 </button>
+            </div>
+            <div className="vc-vrcx-search vc-vrcx-search-side">
+                <Icon.Search size={14} />
+                <input
+                    className="vc-vrcx-search-input"
+                    placeholder="搜尋好友"
+                    value={getFriendSearch()}
+                    onChange={e => setFriendSearch(e.currentTarget.value)}
+                />
             </div>
             {me && <Group title="ME" friends={[me]} keyPrefix="me" onOpen={onOpen} />}
             {favGroups.length > 0 && <FavoritesSection favGroups={favGroups} onOpen={onOpen} />}
@@ -435,7 +450,7 @@ function UserDialog({ friend, onClose }: { friend: Friend; onClose: () => void; 
         <div className="vc-vrcx-overlay" onClick={onClose}>
             <div className="vc-vrcx-dialog" onClick={e => e.stopPropagation()}>
                 <button className="vc-vrcx-dialog-close" onClick={onClose}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.3 5.7L12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4 6.3 6.3 6.3-6.3z" /></svg>
+                    <Icon.X size={18} />
                 </button>
                 <div className="vc-vrcx-dialog-head">
                     <img className="vc-vrcx-dialog-av" src={info?.avatarImageUrl ?? friend.thumbnail ?? ""} alt="" />

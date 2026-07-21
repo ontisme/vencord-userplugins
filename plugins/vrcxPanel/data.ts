@@ -23,6 +23,8 @@ let me: Friend | null = null;
 let usingApi = false; // 好友側欄是否為 API 即時資料
 let available = false;
 let filter: FeedType | "all" = "all";
+let feedSearch = "";     // Feed 搜尋(比對 User/Detail)
+let friendSearch = "";   // 側欄好友搜尋(比對名稱)
 const feedLimit = 500;
 
 const listeners = new Set<() => void>();
@@ -38,13 +40,36 @@ function emit() {
 }
 
 export function getFeed(): FeedEntry[] {
-    return feed;
+    const q = feedSearch.trim().toUpperCase();
+    if (!q) return feed;
+    return feed.filter(e =>
+        e.displayName.toUpperCase().includes(q) || e.detail.toUpperCase().includes(q)
+    );
 }
 export function getGroups(): FriendGroup[] {
-    return groups;
+    const q = friendSearch.trim().toLowerCase();
+    if (!q) return groups;
+    return groups
+        .map(g => ({ ...g, friends: g.friends.filter(f => f.displayName.toLowerCase().includes(q)) }))
+        .filter(g => g.friends.length > 0);
 }
 export function getMe(): Friend | null {
-    return me;
+    if (!friendSearch.trim()) return me;
+    return me && me.displayName.toLowerCase().includes(friendSearch.trim().toLowerCase()) ? me : null;
+}
+export function getFeedSearch(): string {
+    return feedSearch;
+}
+export function getFriendSearch(): string {
+    return friendSearch;
+}
+export function setFeedSearch(q: string) {
+    feedSearch = q;
+    emit();
+}
+export function setFriendSearch(q: string) {
+    friendSearch = q;
+    emit();
 }
 export function isUsingApi(): boolean {
     return usingApi;
