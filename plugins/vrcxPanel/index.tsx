@@ -10,7 +10,7 @@ import { findByPropsLazy } from "@webpack";
 import definePlugin from "@utils/types";
 
 import { checkAvailable } from "./data";
-import { Panel } from "./Panel";
+import { TabLabel } from "./Panel";
 
 export const VRCX_SECTION = "VC_VRCX_PANEL";
 
@@ -33,22 +33,14 @@ export default definePlugin({
 
     patches: [
         {
-            // 好友頁模組(唯一含 "pendingFriends")
+            // 好友頁模組(唯一含 "pendingFriends"):分頁列最前面插入 VRCX 分頁。
+            // 內容不走 Discord 內部 section switch(易碎且已因改版失效),
+            // 改由分頁 content 元件偵測選中後 portal 覆蓋內容區(見 Panel.tsx)。
             find: '"pendingFriends"',
-            replacement: [
-                {
-                    // 分頁列:在最前面(線上分頁之前)插入 VRCX 分頁
-                    match: /(?=\{id:\i\.\i\.ONLINE,show:)/,
-                    replace: "$self.makeTab(),"
-                },
-                {
-                    // 內容區:選中 VRCX 分頁時渲染面板。
-                    // 只匹配 "===ADD_FRIEND?" 分支本身(不含前面的賦值),
-                    // 避免與 messageBoard 同錨點衝突(兩者可各自疊加一層三元式)。
-                    match: /(\i)===(\i\.\i\.ADD_FRIEND)\?/,
-                    replace: `$1==="${VRCX_SECTION}"?$self.renderPanel():$1===$2?`
-                }
-            ]
+            replacement: {
+                match: /(?=\{id:\i\.\i\.ONLINE,show:)/,
+                replace: "$self.makeTab(),"
+            }
         }
     ],
 
@@ -56,12 +48,8 @@ export default definePlugin({
         return {
             id: VRCX_SECTION,
             show: true,
-            content: <span>VRCX</span>
+            content: <TabLabel />
         };
-    },
-
-    renderPanel() {
-        return <Panel />;
     },
 
     flux: {
