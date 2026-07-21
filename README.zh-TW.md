@@ -15,6 +15,8 @@
 | ChannelTabs | 標題列下方的伺服器分頁列(icon + 名稱),點擊回到該伺服器最後停留的頻道;分頁過多時自動壓縮並可橫向捲動,重啟後還原。 |
 | MessageBoard | 好友頁的「動態磚」分頁:未靜音頻道的訊息牆,卡片虛擬化渲染,支援快速回覆、跳轉訊息,以及逐頻道/逐伺服器的靜音與隱藏管理。 |
 | VoiceSpeakerPopout | 畫面內可拖曳、可調整大小的語音浮層:顯示語音頻道成員與即時說話狀態、靜音/拒聽圖示、自身麥克風與拒聽開關,右鍵開啟原生成員選單(含使用者音量滑桿)。 |
+| StockPanel | 好友按鈕下方的「股票」入口,開啟全版股票查詢頁,以原生 `WebContentsView` 嵌入完整版 TradingView(涵蓋所有市場)。 |
+| VrcxPanel | 好友頁的「VRCX」分頁,1:1 復刻 [VRCX](https://github.com/vrcx-team/VRCX):Feed 日誌(GPS/Online/Offline/Status/Avatar/Bio,可展開詳情)與好友側欄(ME/FAVORITES/ONLINE/ACTIVE/OFFLINE 分組、狀態點、trust 著色、位置、搜尋,及逐使用者 Info dialog)。讀取執行中的 VRCX SQLite 資料庫,並在需要時復用 VRCX 的登入 cookie 呼叫 VRChat API 取得頭像、即時狀態與收藏分組。 |
 
 ## 安裝
 
@@ -90,6 +92,8 @@ Vencord\                  本機開發用 Vencord clone(git 忽略)
 - 插件使用 Discord 現行 CSS 變數(`--background-base-low`、`--background-surface-higher`、`--text-default`、`--background-mod-subtle` 等)。舊版變數(`--background-secondary`、`--interactive-normal`、`--header-primary` 等)在現行 Discord 已解析為空,請勿使用。
 - 所有插件在 merge 至 `main` 前,皆於 Vesktop 實機搭配鎖定版 Vencord 驗證通過。
 
-## 授權
+## 致謝與授權
 
 GPL-3.0-or-later,與 Vencord 一致。
+
+**VrcxPanel** 插件直接參考並模仿 [VRCX](https://github.com/vrcx-team/VRCX) 開源專案(GPL-3.0),以達成 UI 與行為的 1:1 復刻。其呈現邏輯與樣式——好友側欄狀態點顏色規則、trust 名稱著色、location/instance 解析、Feed 日誌欄位與展開行、圖標選用等——皆源自 VRCX 的原始碼。相關設計的功勞歸於 VRCX 團隊。

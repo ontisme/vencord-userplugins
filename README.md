@@ -15,6 +15,8 @@ The plugins are developed and tested against a pinned Vencord version (see [Buil
 | ChannelTabs | A per-server tab bar below the title bar (icon + name). Clicking a tab returns to the last visited channel of that server. Tabs compress and scroll horizontally when crowded; layout is restored across restarts. |
 | MessageBoard | A "message wall" tab on the Friends page showing cards from unmuted channels, with virtualized rendering, quick reply, jump-to-message, and per-channel/per-server mute and hide management. |
 | VoiceSpeakerPopout | A draggable, resizable in-app overlay showing voice channel members with live speaking indicators, mute/deafen status, self mute/deafen controls, and the native member context menu (including the per-user volume slider). |
+| StockPanel | A "Stock" entry below the Friends button that opens a full-page stock viewer, embedding the full TradingView site (all markets) via a native `WebContentsView`. |
+| VrcxPanel | A "VRCX" tab on the Friends page that mirrors [VRCX](https://github.com/vrcx-team/VRCX): a Feed log (GPS/Online/Offline/Status/Avatar/Bio with expandable rows) and a friends sidebar (ME/FAVORITES/ONLINE/ACTIVE/OFFLINE, status dots, trust colors, locations, search, and a per-user Info dialog). Reads the running VRCX SQLite database and, on demand, calls the VRChat API (reusing VRCX's login cookie) for avatars, live status, and favorite groups. |
 
 ## Installation
 
@@ -90,6 +92,8 @@ Vencord\                  Local Vencord clone for development (ignored)
 - The plugins use Discord's current CSS variables (`--background-base-low`, `--background-surface-higher`, `--text-default`, `--background-mod-subtle`, ...). Legacy variables (`--background-secondary`, `--interactive-normal`, `--header-primary`, ...) resolve to nothing in current Discord and must not be used.
 - All plugins are verified on Vesktop against the pinned Vencord version before being merged to `main`.
 
-## License
+## Credits & License
 
 GPL-3.0-or-later, matching Vencord.
+
+The **VrcxPanel** plugin directly references and mirrors the [VRCX](https://github.com/vrcx-team/VRCX) open-source project (GPL-3.0) to achieve a 1:1 recreation of its UI and behavior. Its presentation logic and styling — friends-sidebar status-dot color rules, trust-rank name coloring, location/instance parsing, Feed columns and expandable rows, and icon choices — are derived from VRCX's source. All credit for that design goes to the VRCX team.
