@@ -37,9 +37,11 @@ export default definePlugin({
                     replace: "$self.makeTab(),"
                 },
                 {
-                    // 內容區:選中動態磚分頁時渲染看板
-                    match: /(\i)=(\i)===(\i\.\i\.ADD_FRIEND)\?/,
-                    replace: `$1=$2==="${BOARD_SECTION}"?$self.renderBoard():$2===$3?`
+                    // 內容區:整個內容區由賦值三元式 k=section===ADD_FRIEND?<新增好友>:<好友清單> 決定。
+                    // 前綴用 [=:] 匹配原始的 "k=...ADD_FRIEND?" 或另一插件已疊層後的 ":...ADD_FRIEND?",
+                    // 鎖定內容三元式(非 empty-state 模組),與 vrcxPanel 可各自疊加、不受套用順序影響。
+                    match: /([=:])(\i)===(\i\.\i)\.ADD_FRIEND\?/,
+                    replace: `$1$2==="${BOARD_SECTION}"?$self.renderBoard():$2===$3.ADD_FRIEND?`
                 }
             ]
         }

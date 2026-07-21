@@ -75,7 +75,7 @@
     border-radius: 16px;
     background: var(--brand-500);
 }
-.vc-favsrv-icon img { width: 100%; height: 100%; object-fit: cover; }
+.vc-favsrv-icon img { width: 100%; height: 100%; object-fit: cover; -webkit-user-drag: none; user-select: none; }
 .vc-favsrv-initial {
     font-size: 16px;
     font-weight: 600;
@@ -124,12 +124,65 @@
     box-shadow: 0 0 0 2px var(--background-base-lowest), 0 0 0 4px #23a55a;
 }
 
-/* 拖曳放置目標高亮 */
+/* 有人在語音:圖示左下角綠色膠囊(耳機 + 人數,仿原生) */
+.vc-favsrv-voice {
+    position: absolute;
+    left: 6px;
+    bottom: -2px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: #23a55a;
+    color: var(--white);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    height: 16px;
+    padding: 0 5px 0 3px;
+    border: 3px solid var(--background-base-lowest);
+    box-sizing: content-box;
+    pointer-events: none;
+}
+.vc-favsrv-voice svg { flex-shrink: 0; }
+
+/* 拖曳放置:中間落點 = 建/進資料夾,圖示外框高亮 */
 .vc-favsrv-dropinto .vc-favsrv-icon,
 .vc-favsrv-dropinto.vc-favsrv-folder-head {
     outline: 2px solid var(--brand-500);
     outline-offset: 2px;
 }
+
+/* 拖曳放置:上/下緣落點 = 排序,顯示插入指示線 */
+.vc-favsrv-item.vc-favsrv-drop-before::before,
+.vc-favsrv-item.vc-favsrv-drop-after::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--brand-500);
+    box-shadow: 0 0 6px var(--brand-500);
+    z-index: 2;
+}
+.vc-favsrv-item.vc-favsrv-drop-before::before { top: -3px; }
+.vc-favsrv-item.vc-favsrv-drop-after::after { bottom: -3px; }
+
+/* Pointer 拖曳的浮動預覽:跟隨游標,置中於游標 */
+.vc-favsrv-drag-preview {
+    position: fixed;
+    z-index: 9999;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    overflow: hidden;
+    opacity: 0.85;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+.vc-favsrv-drag-preview img { width: 100%; height: 100%; object-fit: cover; }
 
 /* 資料夾 */
 .vc-favsrv-folder { width: 100%; display: flex; flex-direction: column; align-items: center; }
@@ -191,15 +244,4 @@
 .vc-favsrv-rename-box {
     width: calc(100% - 8px);
     padding: 2px 4px;
-}
-
-/* 排序放置槽:分頁間細縫,拖曳時高亮 */
-.vc-favsrv-slot {
-    height: 4px;
-    width: 100%;
-}
-.vc-favsrv-slot-active {
-    height: 4px;
-    background: var(--brand-500);
-    border-radius: 2px;
 }
