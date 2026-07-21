@@ -173,20 +173,45 @@ function sortGroups(groups: FriendGroup[]): FriendGroup[] {
     return [...fav, ...rest];
 }
 
-function Group({ group, collapsible, onOpen }: { group: FriendGroup; collapsible: boolean; onOpen: (f: Friend) => void; }) {
-    const [collapsed, setCollapsed] = useState(false);
+// 可折疊分組(所有分組皆可折疊)。count 未提供時用 friends.length。
+function Group({ title, friends, keyPrefix, onOpen, headClass, defaultCollapsed }: {
+    title: string;
+    friends: Friend[];
+    keyPrefix: string;
+    onOpen: (f: Friend) => void;
+    headClass?: string;
+    defaultCollapsed?: boolean;
+}) {
+    const [collapsed, setCollapsed] = useState(defaultCollapsed ?? false);
     return (
         <div className="vc-vrcx-group">
             <div
-                className={"vc-vrcx-group-title" + (collapsible ? " vc-vrcx-group-collapsible" : "")}
-                onClick={() => collapsible && setCollapsed(c => !c)}
+                className={"vc-vrcx-group-title vc-vrcx-group-collapsible" + (headClass ? " " + headClass : "")}
+                onClick={() => setCollapsed(c => !c)}
             >
-                {collapsible && (
-                    <svg className={"vc-vrcx-group-caret" + (collapsed ? "" : " vc-vrcx-group-open")} width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
-                )}
-                {group.title} — {group.friends.length}
+                <svg className={"vc-vrcx-group-caret" + (collapsed ? "" : " vc-vrcx-group-open")} width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
+                {title} — {friends.length}
             </div>
-            {!collapsed && group.friends.map(f => <FriendRow key={group.key + f.userId} friend={f} onOpen={onOpen} />)}
+            {!collapsed && friends.map(f => <FriendRow key={keyPrefix + f.userId} friend={f} onOpen={onOpen} />)}
+        </div>
+    );
+}
+
+// FAVORITES 母分組:可整體收折,展開後顯示各收藏子分組
+function FavoritesSection({ favGroups, onOpen }: { favGroups: FriendGroup[]; onOpen: (f: Friend) => void; }) {
+    const [collapsed, setCollapsed] = useState(false);
+    const count = favGroups.reduce((n, g) => n + g.friends.length, 0);
+    return (
+        <div className="vc-vrcx-group">
+            <div className="vc-vrcx-group-title vc-vrcx-group-collapsible vc-vrcx-fav-head" onClick={() => setCollapsed(c => !c)}>
+                <svg className={"vc-vrcx-group-caret" + (collapsed ? "" : " vc-vrcx-group-open")} width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
+                FAVORITES — {count}
+            </div>
+            {!collapsed && favGroups.map(g => (
+                <div className="vc-vrcx-fav-sub" key={g.key}>
+                    <Group title={g.title} friends={g.friends} keyPrefix={g.key} onOpen={onOpen} />
+                </div>
+            ))}
         </div>
     );
 }
@@ -196,6 +221,8 @@ function Sidebar({ onOpen }: { onOpen: (f: Friend) => void; }) {
     const groups = useMemo(() => sortGroups(rawGroups), [rawGroups]);
     const me = getMe();
     const usingApi = isUsingApi();
+    const favGroups = useMemo(() => groups.filter(g => g.key.startsWith("favorites:")), [groups]);
+    const restGroups = useMemo(() => groups.filter(g => !g.key.startsWith("favorites:")), [groups]);
     const total = useMemo(() => groups.reduce((n, g) => n + g.friends.length, 0), [groups]);
     const onlineCount = useMemo(
         () => groups.filter(g => g.key === "online" || g.key === "active").reduce((n, g) => n + g.friends.length, 0),
@@ -212,21 +239,16 @@ function Sidebar({ onOpen }: { onOpen: (f: Friend) => void; }) {
                     </svg>
                 </button>
             </div>
-            {me && (
-                <div className="vc-vrcx-group">
-                    <div className="vc-vrcx-group-title">ME</div>
-                    <FriendRow friend={me} onOpen={onOpen} />
-                </div>
-            )}
-            {groups.some(g => g.key.startsWith("favorites:")) && (
-                <div className="vc-vrcx-group-title vc-vrcx-fav-head">FAVORITES — {groups.filter(g => g.key.startsWith("favorites:")).length}</div>
-            )}
-            {groups.map(g => (
+            {me && <Group title="ME" friends={[me]} keyPrefix="me" onOpen={onOpen} />}
+            {favGroups.length > 0 && <FavoritesSection favGroups={favGroups} onOpen={onOpen} />}
+            {restGroups.map(g => (
                 <Group
                     key={g.key}
-                    group={g}
-                    collapsible={g.key === "active" || g.key === "offline"}
+                    title={g.title}
+                    friends={g.friends}
+                    keyPrefix={g.key}
                     onOpen={onOpen}
+                    defaultCollapsed={g.key === "offline"}
                 />
             ))}
         </div>

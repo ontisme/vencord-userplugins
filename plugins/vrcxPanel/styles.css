@@ -197,6 +197,9 @@
 .vc-vrcx-group-open { transform: rotate(90deg); }
 /* FAVORITES 母標題(其下為各收藏子分組) */
 .vc-vrcx-fav-head { color: #cfd2d6; margin-top: 12px; }
+/* 收藏子分組:略縮排,視覺上隸屬 FAVORITES */
+.vc-vrcx-fav-sub { padding-left: 10px; }
+.vc-vrcx-fav-sub .vc-vrcx-group { margin-bottom: 4px; }
 
 .vc-vrcx-friend {
     display: flex;

@@ -267,16 +267,20 @@ export async function getLiveFriends(): Promise<{ me: Friend | null; groups: Fri
     const byId = new Map<string, Friend>();
     for (const f of [...onlineList, ...activeList, ...offlineList]) byId.set(f.userId, f);
 
+    // 去重:收藏成員只顯示在 FAVORITES,從 online/active/offline 移除(對齊 VRCX)
+    const favIds = new Set<string>();
     const groups: FriendGroup[] = [];
     if (favGroups) {
         for (const g of favGroups) {
             const members = g.userIds.map(id => byId.get(id)).filter((f): f is Friend => f != null);
+            for (const m of members) favIds.add(m.userId);
             if (members.length) groups.push({ key: `favorites:${g.name}`, title: g.displayName, friends: members });
         }
     }
-    groups.push({ key: "online", title: "ONLINE", friends: onlineList });
-    groups.push({ key: "active", title: "ACTIVE", friends: activeList });
-    groups.push({ key: "offline", title: "OFFLINE", friends: offlineList });
+    const notFav = (f: Friend) => !favIds.has(f.userId);
+    groups.push({ key: "online", title: "ONLINE", friends: onlineList.filter(notFav) });
+    groups.push({ key: "active", title: "ACTIVE", friends: activeList.filter(notFav) });
+    groups.push({ key: "offline", title: "OFFLINE", friends: offlineList.filter(notFav) });
 
     const me: Friend | null = meUser ? {
         userId: meUser.id,
