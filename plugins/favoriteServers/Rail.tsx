@@ -103,26 +103,61 @@ type DropIntent =
     | { kind: "make-folder"; id: string; }  // 與目標 guild 建資料夾
     | null;
 
-// 依游標落點判斷意圖(對齊原生 Discord:上/下緣排序、中間建/進資料夾)
+// 「指哪打哪」落點判斷:以整條 rail 的所有頂層項目垂直範圍為基準,
+// 游標 Y 落在哪就插到哪(含最上、最下空白)。只有非常靠近某項目中心才建/進資料夾。
 function computeIntent(x: number, y: number, draggedId: string): DropIntent {
-    const under = document.elementFromPoint(x, y);
-    const el = under?.closest("[data-favsrv-drop]") as HTMLElement | null;
-    if (!el) return null;
-    const kind = el.getAttribute("data-favsrv-drop");
-    const id = el.getAttribute("data-favsrv-id") ?? "";
+    // rail 內所有頂層放置目標(guild 與 folder head),依畫面 Y 由上到下
+    const rail = document.querySelector(".vc-favsrv-rail");
+    if (!rail) return null;
+    const targets = [...rail.querySelectorAll("[data-favsrv-drop]")]
+        .map(el => {
+            const e = el as HTMLElement;
+            return { el: e, id: e.getAttribute("data-favsrv-id") ?? "", kind: e.getAttribute("data-favsrv-drop"), r: e.getBoundingClientRect() };
+        })
+        // 只取頂層項(資料夾內的 guild 排除,它們的 rect 在資料夾展開區內,不參與頂層排序)
+        .filter(t => !t.el.getAttribute("data-favsrv-folder"))
+        .sort((a, b) => a.r.top - b.r.top);
+    if (targets.length === 0) return null;
 
-    // 資料夾頭:整塊都當「進資料夾」
-    if (kind === "folder") return { kind: "into-folder", id };
+    // 游標高於第一項中線 -> 插到最前
+    const first = targets[0];
+    if (y < first.r.top + first.r.height / 2) {
+        return first.id === draggedId ? null : { kind: "before", id: first.id };
+    }
+    // 游標低於最後一項中線(含下方空白)-> 插到最後
+    const last = targets[targets.length - 1];
+    if (y >= last.r.top + last.r.height / 2) {
+        // 若正落在最後一項的中心 20% 內且是 guild,才建資料夾
+        const centerBand = Math.abs(y - (last.r.top + last.r.height / 2)) < last.r.height * 0.2;
+        if (centerBand && last.kind === "guild" && last.id !== draggedId) {
+            const fid = last.el.getAttribute("data-favsrv-folder");
+            return fid ? { kind: "into-folder", id: fid } : { kind: "make-folder", id: last.id };
+        }
+        if (last.kind === "folder" && centerBand) return { kind: "into-folder", id: last.id };
+        return last.id === draggedId ? null : { kind: "after", id: last.id };
+    }
 
-    if (kind === "guild") {
-        if (id === draggedId) return null;
-        const r = el.getBoundingClientRect();
-        const rel = (y - r.top) / r.height; // 0(上緣)~1(下緣)
-        // 上 30% 插前、下 30% 插後、中間 40% 建資料夾(該 guild 在資料夾內則進該資料夾)
-        if (rel < 0.3) return { kind: "before", id };
-        if (rel > 0.7) return { kind: "after", id };
-        const fid = el.getAttribute("data-favsrv-folder");
-        return fid ? { kind: "into-folder", id: fid } : { kind: "make-folder", id };
+    // 中間:找游標所在的那一項(其上下中線之間),判斷插前/插後/建資料夾
+    for (const t of targets) {
+        const mid = t.r.top + t.r.height / 2;
+        const next = targets[targets.indexOf(t) + 1];
+        const nextMid = next ? next.r.top + next.r.height / 2 : Infinity;
+        if (y >= mid && y < nextMid) {
+            // 落在 t 中線與 next 中線之間;非常靠近某一項中心(±15%)才建/進資料夾
+            const nearT = Math.abs(y - mid) < t.r.height * 0.15;
+            const nearNext = next && Math.abs(y - nextMid) < next.r.height * 0.15;
+            if (nearT && t.kind === "guild" && t.id !== draggedId) {
+                const fid = t.el.getAttribute("data-favsrv-folder");
+                return fid ? { kind: "into-folder", id: fid } : { kind: "make-folder", id: t.id };
+            }
+            if (nearNext && next.kind === "guild" && next.id !== draggedId) {
+                const fid = next.el.getAttribute("data-favsrv-folder");
+                return fid ? { kind: "into-folder", id: fid } : { kind: "make-folder", id: next.id };
+            }
+            if (t.kind === "folder" && nearT) return { kind: "into-folder", id: t.id };
+            // 其餘一律排序:插在 next 之前(= t 之後)
+            return next ? { kind: "before", id: next.id } : { kind: "after", id: t.id };
+        }
     }
     return null;
 }
@@ -131,7 +166,8 @@ function computeIntent(x: number, y: number, draggedId: string): DropIntent {
 // 是 folder id,兩者皆帶 data-favsrv-id,故單一選擇器即可命中。
 function applyIntentHighlight(intent: DropIntent) {
     if (!intent) return;
-    const el = document.querySelector(`[data-favsrv-drop][data-favsrv-id="${intent.id}"]`);
+    const el = document.querySelector(`.vc-favsrv-rail [data-favsrv-drop][data-favsrv-id="${intent.id}"]:not([data-favsrv-folder])`)
+        ?? document.querySelector(`.vc-favsrv-rail [data-favsrv-drop][data-favsrv-id="${intent.id}"]`);
     if (!el) return;
     if (intent.kind === "before") el.classList.add("vc-favsrv-drop-before");
     else if (intent.kind === "after") el.classList.add("vc-favsrv-drop-after");
