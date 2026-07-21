@@ -58,7 +58,7 @@ export function trustColor(trust: string): string {
 }
 
 // 好友狀態點的 class(對齊 VRCX userStatusClass,user.js:57-149)。
-// 回傳:online/joinme/askme/busy/offline(實心) 或 active/active-joinme/active-askme/active-busy(空心描邊) 或 ""(不顯示)。
+// 回傳:online/joinme/askme/busy/offline(實心) 或 active/active-joinme/active-askme/active-busy(空心描邊)。
 export function statusDotClass(f: {
     rawState: "online" | "active" | "offline";
     status: string;

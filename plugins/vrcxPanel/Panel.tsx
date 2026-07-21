@@ -156,7 +156,7 @@ function FeedExpanded({ entry }: { entry: FeedEntry; }) {
     if (entry.type === "gps" && entry.previousLocation) {
         return (
             <div className="vc-vrcx-expand">
-                <span className="vc-vrcx-detail-text">{parseLocation(entry.previousLocation).instanceType ? entry.previousLocation : entry.previousLocation}</span>
+                <span className="vc-vrcx-detail-text">{entry.previousLocation}</span>
                 {entry.time ? <span className="vc-vrcx-time-badge">{timeToText(entry.time)}</span> : null}
                 <svg className="vc-vrcx-arrow" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4v14M6 13l6 6 6-6" /></svg>
                 <span className="vc-vrcx-detail-text">{entry.worldName || entry.location}</span>
@@ -191,18 +191,21 @@ function FeedExpanded({ entry }: { entry: FeedEntry; }) {
     return null;
 }
 
-// 可展開的 type
-const EXPANDABLE = new Set<FeedType>(["gps", "offline", "avatar", "status", "bio"]);
+// 是否有可展開的詳情(依 type 檢查對應的「前一個」欄位)
+function canExpandEntry(entry: FeedEntry): boolean {
+    switch (entry.type) {
+        case "gps": return !!entry.previousLocation;
+        case "offline": return !!entry.time;
+        case "avatar": return !!entry.previousAvatarThumbnail;
+        case "status": return !!entry.previousStatus;
+        case "bio": return !!entry.previousBio;
+        default: return false;
+    }
+}
 
 function FeedRow({ entry }: { entry: FeedEntry; }) {
     const [expanded, setExpanded] = useState(false);
-    const canExpand = EXPANDABLE.has(entry.type) &&
-        (entry.type === "gps" ? !!entry.previousLocation
-            : entry.type === "offline" ? !!entry.time
-                : entry.type === "avatar" ? !!entry.previousAvatarThumbnail
-                    : entry.type === "status" ? !!entry.previousStatus
-                        : entry.type === "bio" ? !!entry.previousBio
-                            : false);
+    const canExpand = canExpandEntry(entry);
     return (
         <>
             <div className={"vc-vrcx-row" + (canExpand ? " vc-vrcx-row-expandable" : "")} onClick={() => canExpand && setExpanded(e => !e)}>
