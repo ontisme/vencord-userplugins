@@ -12,8 +12,11 @@ import { join } from "path";
 import { type Db, openDb } from "./sqlite";
 import { type ApiFriend, apiAvailable, type FavoriteGroup, fetchFavoriteFriends, fetchFriends } from "./vrchatApi";
 
-// VRChat 頭像與縮圖 CDN;需重啟 Vesktop 生效
+// VRChat 頭像與縮圖 CDN;需重啟 Vesktop 生效。
+// api.vrchat.cloud 的 image 端點會 302 轉址到 files.vrchat.cloud,兩者都要放行。
 CspPolicies["api.vrchat.cloud"] = ["img-src"];
+CspPolicies["files.vrchat.cloud"] = ["img-src"];
+CspPolicies["*.vrchat.cloud"] = ["img-src"];
 
 const DB_PATH = join(process.env.APPDATA ?? "", "VRCX", "VRCX.sqlite3");
 
