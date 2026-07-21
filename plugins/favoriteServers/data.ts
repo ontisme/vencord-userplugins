@@ -122,14 +122,25 @@ export function removeGuildFromFolder(guildId: string, folderId: string): void {
     persistSoon();
 }
 
-export function reorderItem(fromId: string, toId: string): void {
-    const from = data.items.findIndex(it => it.id === fromId);
-    const to = data.items.findIndex(it => it.id === toId);
-    if (from === -1 || to === -1 || from === to) return;
-    const items = [...data.items];
+// 把 fromId 移到 toId 之前(after=false)或之後(after=true)。
+// fromId 可能是頂層 guild、資料夾,或資料夾內的 guild(需先移出資料夾)。
+export function reorderItem(fromId: string, toId: string, after = false): void {
+    if (fromId === toId) return;
+    // 若 fromId 在某資料夾內,先移出成為頂層項
+    let items = data.items.map(it =>
+        it.type === "folder" ? { ...it, guildIds: it.guildIds.filter(id => id !== fromId) } : it
+    );
+    const inFolder = data.items.some(it => it.type === "folder" && it.guildIds.includes(fromId));
+    if (inFolder && !items.some(it => it.id === fromId)) {
+        items = [...items, { type: "guild", id: fromId }];
+    }
+    const from = items.findIndex(it => it.id === fromId);
+    if (from === -1) return;
     const [moved] = items.splice(from, 1);
-    items.splice(items.findIndex(it => it.id === toId), 0, moved);
-    data.items = items;
+    const to = items.findIndex(it => it.id === toId);
+    if (to === -1) { items.splice(from, 0, moved); return; } // 目標不存在,還原
+    items.splice(after ? to + 1 : to, 0, moved);
+    data.items = items.filter(it => !(it.type === "folder" && it.guildIds.length === 0));
     emit();
     persistSoon();
 }

@@ -90,17 +90,58 @@ function movePreview(x: number, y: number) {
     if (dragPreview) { dragPreview.style.left = x + "px"; dragPreview.style.top = y + "px"; }
 }
 
-// 清掉所有放置高亮
+// 清掉所有放置指示(插入線與中心高亮)
 function clearDropHighlights() {
-    document.querySelectorAll(".vc-favsrv-dropinto, .vc-favsrv-slot-active")
-        .forEach(el => el.classList.remove("vc-favsrv-dropinto", "vc-favsrv-slot-active"));
+    document.querySelectorAll(".vc-favsrv-dropinto, .vc-favsrv-drop-before, .vc-favsrv-drop-after")
+        .forEach(el => el.classList.remove("vc-favsrv-dropinto", "vc-favsrv-drop-before", "vc-favsrv-drop-after"));
+}
+
+type DropIntent =
+    | { kind: "before"; id: string; }   // 插在目標之前
+    | { kind: "after"; id: string; }    // 插在目標之後
+    | { kind: "into-folder"; id: string; }  // 進資料夾
+    | { kind: "make-folder"; id: string; }  // 與目標 guild 建資料夾
+    | null;
+
+// 依游標落點判斷意圖(對齊原生 Discord:上/下緣排序、中間建/進資料夾)
+function computeIntent(x: number, y: number, draggedId: string): DropIntent {
+    const under = document.elementFromPoint(x, y);
+    const el = under?.closest("[data-favsrv-drop]") as HTMLElement | null;
+    if (!el) return null;
+    const kind = el.getAttribute("data-favsrv-drop");
+    const id = el.getAttribute("data-favsrv-id") ?? "";
+
+    // 資料夾頭:整塊都當「進資料夾」
+    if (kind === "folder") return { kind: "into-folder", id };
+
+    if (kind === "guild") {
+        if (id === draggedId) return null;
+        const r = el.getBoundingClientRect();
+        const rel = (y - r.top) / r.height; // 0(上緣)~1(下緣)
+        // 上 30% 插前、下 30% 插後、中間 40% 建資料夾(該 guild 在資料夾內則進該資料夾)
+        if (rel < 0.3) return { kind: "before", id };
+        if (rel > 0.7) return { kind: "after", id };
+        const fid = el.getAttribute("data-favsrv-folder");
+        return fid ? { kind: "into-folder", id: fid } : { kind: "make-folder", id };
+    }
+    return null;
+}
+
+// 依意圖在對應元素套視覺指示
+function applyIntentHighlight(intent: DropIntent) {
+    if (!intent) return;
+    const el = document.querySelector(`[data-favsrv-drop][data-favsrv-id="${intent.id}"]`)
+        ?? (intent.kind === "into-folder" ? document.querySelector(`[data-favsrv-drop="folder"][data-favsrv-id="${intent.id}"]`) : null);
+    if (!el) return;
+    if (intent.kind === "before") el.classList.add("vc-favsrv-drop-before");
+    else if (intent.kind === "after") el.classList.add("vc-favsrv-drop-after");
+    else el.classList.add("vc-favsrv-dropinto");
 }
 
 // 啟動一次 pointer 拖曳(在 GuildIcon 的 pointerdown 呼叫)
 function beginDrag(guildId: string, iconEl: HTMLElement, startX: number, startY: number, onClickFallback: () => void) {
     let dragging = false;
 
-    // 單一收尾路徑:移除監聽、清掉浮動預覽/高亮、歸還模組級狀態
     function cleanup() {
         document.removeEventListener("pointermove", onMove);
         document.removeEventListener("pointerup", onUp);
@@ -118,34 +159,24 @@ function beginDrag(guildId: string, iconEl: HTMLElement, startX: number, startY:
             makePreview(iconEl, e.clientX, e.clientY);
         }
         movePreview(e.clientX, e.clientY);
-        // 依游標下的元素設定放置高亮(預覽的 pointer-events:none 由 CSS 處理,不擋 elementFromPoint)
         clearDropHighlights();
-        const under = document.elementFromPoint(e.clientX, e.clientY);
-        const item = under?.closest(".vc-favsrv-item, .vc-favsrv-folder-head, .vc-favsrv-slot") as HTMLElement | null;
-        if (item) item.classList.add(item.classList.contains("vc-favsrv-slot") ? "vc-favsrv-slot-active" : "vc-favsrv-dropinto");
+        applyIntentHighlight(computeIntent(e.clientX, e.clientY, guildId));
     }
 
     function onUp(e: PointerEvent) {
-        // 未超過門檻:視為點擊,觸發導航
         if (!dragging) { cleanup(); onClickFallback(); return; }
-        // 找放置目標(於 cleanup 移除預覽前先讀取)
-        const under = document.elementFromPoint(e.clientX, e.clientY);
-        const target = under?.closest("[data-favsrv-drop]") as HTMLElement | null;
+        const intent = computeIntent(e.clientX, e.clientY, guildId);
         const dragged = dragGuildId;
         cleanup();
-        if (!target || !dragged) return;
-        const kind = target.getAttribute("data-favsrv-drop");
-        const id = target.getAttribute("data-favsrv-id") ?? "";
-        if (kind === "slot") reorderItem(dragged, id);
-        else if (kind === "folder") addGuildToFolder(dragged, id);
-        else if (kind === "guild" && id !== dragged) {
-            const fid = target.getAttribute("data-favsrv-folder");
-            if (fid) addGuildToFolder(dragged, fid);
-            else createFolderFrom(dragged, id);
+        if (!intent || !dragged) return;
+        switch (intent.kind) {
+            case "before": reorderItem(dragged, intent.id, false); break;
+            case "after": reorderItem(dragged, intent.id, true); break;
+            case "into-folder": addGuildToFolder(dragged, intent.id); break;
+            case "make-folder": createFolderFrom(dragged, intent.id); break;
         }
     }
 
-    // 指標被系統取消(失焦、觸控中斷等):純收尾,不放置
     function onCancel() {
         cleanup();
     }
@@ -282,10 +313,6 @@ function FolderOpenIcon() {
     );
 }
 
-function ReorderSlot({ itemId }: { itemId: string; }) {
-    return <div className="vc-favsrv-slot" data-favsrv-drop="slot" data-favsrv-id={itemId} />;
-}
-
 function RailInner() {
     const [, forceUpdate] = useReducer(x => x + 1, 0);
     useEffect(() => subscribe(forceUpdate), []);
@@ -300,7 +327,6 @@ function RailInner() {
             </div>
             {items.map(item => (
                 <div key={item.id}>
-                    <ReorderSlot itemId={item.id} />
                     {item.type === "guild"
                         ? <GuildIcon guildId={item.id} />
                         : <Folder folder={item} />}

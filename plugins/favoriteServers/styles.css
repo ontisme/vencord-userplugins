@@ -146,12 +146,28 @@
 }
 .vc-favsrv-voice svg { flex-shrink: 0; }
 
-/* 拖曳放置目標高亮 */
+/* 拖曳放置:中間落點 = 建/進資料夾,圖示外框高亮 */
 .vc-favsrv-dropinto .vc-favsrv-icon,
 .vc-favsrv-dropinto.vc-favsrv-folder-head {
     outline: 2px solid var(--brand-500);
     outline-offset: 2px;
 }
+
+/* 拖曳放置:上/下緣落點 = 排序,顯示插入指示線 */
+.vc-favsrv-item.vc-favsrv-drop-before::before,
+.vc-favsrv-item.vc-favsrv-drop-after::after {
+    content: "";
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--brand-500);
+    box-shadow: 0 0 6px var(--brand-500);
+    z-index: 2;
+}
+.vc-favsrv-item.vc-favsrv-drop-before::before { top: -3px; }
+.vc-favsrv-item.vc-favsrv-drop-after::after { bottom: -3px; }
 
 /* Pointer 拖曳的浮動預覽:跟隨游標,置中於游標 */
 .vc-favsrv-drag-preview {
@@ -228,15 +244,4 @@
 .vc-favsrv-rename-box {
     width: calc(100% - 8px);
     padding: 2px 4px;
-}
-
-/* 排序放置槽:分頁間細縫,拖曳時高亮 */
-.vc-favsrv-slot {
-    height: 4px;
-    width: 100%;
-}
-.vc-favsrv-slot-active {
-    height: 4px;
-    background: var(--brand-500);
-    border-radius: 2px;
 }
