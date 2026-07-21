@@ -5,7 +5,7 @@
  */
 
 import ErrorBoundary from "@components/ErrorBoundary";
-import { useEffect, useMemo, useReducer, useState } from "@webpack/common";
+import { useEffect, useReducer, useState } from "@webpack/common";
 
 import {
     type FeedEntry, type FeedType, type Friend, type FriendGroup, fetchUserInfo, getFeed,
@@ -340,17 +340,16 @@ function FavoritesSection({ favGroups, onOpen }: { favGroups: FriendGroup[]; onO
 }
 
 function Sidebar({ onOpen }: { onOpen: (f: Friend) => void; }) {
-    const rawGroups = getGroups();
-    const groups = useMemo(() => sortGroups(rawGroups), [rawGroups]);
+    // 搜尋時 getGroups() 每次回新陣列,memo 無效;資料量小(<100),直接計算即可。
+    const groups = sortGroups(getGroups());
     const me = getMe();
     const usingApi = isUsingApi();
-    const favGroups = useMemo(() => groups.filter(g => g.key.startsWith("favorites:")), [groups]);
-    const restGroups = useMemo(() => groups.filter(g => !g.key.startsWith("favorites:")), [groups]);
-    const total = useMemo(() => groups.reduce((n, g) => n + g.friends.length, 0), [groups]);
-    const onlineCount = useMemo(
-        () => groups.filter(g => g.key === "online" || g.key === "active").reduce((n, g) => n + g.friends.length, 0),
-        [groups]
-    );
+    const favGroups = groups.filter(g => g.key.startsWith("favorites:"));
+    const restGroups = groups.filter(g => !g.key.startsWith("favorites:"));
+    const total = groups.reduce((n, g) => n + g.friends.length, 0);
+    const onlineCount = groups
+        .filter(g => g.key === "online" || g.key === "active")
+        .reduce((n, g) => n + g.friends.length, 0);
 
     return (
         <div className="vc-vrcx-sidebar">
