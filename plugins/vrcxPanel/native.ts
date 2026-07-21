@@ -57,8 +57,12 @@ export interface Friend {
     displayName: string;
     trustLevel: string;
     friendNumber: number;
+    // rawState:VRChat 原始 state(online/active/offline),決定狀態點實心或空心
+    rawState: "online" | "active" | "offline";
+    // state:online/active 皆併為 online 供分組判定用(舊欄位保留)
     state: "online" | "offline" | "unknown";
-    status: string;             // join me / active / ask me / busy / offline(VRChat status)
+    status: string;                 // join me / active / ask me / busy / offline(VRChat status)
+    statusDescription: string;      // 使用者自訂狀態文字
     lastLocation: string | null;
     lastWorld: string | null;
     lastSeen: string | null;
@@ -204,8 +208,10 @@ export function getFriends(): Friend[] {
                 displayName: s(r[1]),
                 trustLevel: s(r[2]),
                 friendNumber: Number(r[3]) || 0,
+                rawState: st?.state === "online" ? "online" : "offline",
                 state: st?.state ?? "unknown",
                 status: "",
+                statusDescription: "",
                 lastLocation: location,
                 lastWorld: world,
                 lastSeen,
@@ -245,13 +251,17 @@ export async function getLiveFriends(): Promise<{ me: Friend | null; groups: Fri
     function friendState(u: ApiFriend): Friend["state"] {
         return u.state === "online" || u.state === "active" ? "online" : "offline";
     }
+    const rawState = (u: ApiFriend): Friend["rawState"] =>
+        u.state === "online" ? "online" : u.state === "active" ? "active" : "offline";
     const toFriend = (u: ApiFriend): Friend => ({
         userId: u.id,
         displayName: u.displayName,
         trustLevel: trustFromDb.get(u.id) ?? "",
         friendNumber: 0,
+        rawState: rawState(u),
         state: friendState(u),
         status: u.status ?? "",
+        statusDescription: u.statusDescription ?? "",
         lastLocation: u.location ?? null,
         lastWorld: null,
         lastSeen: null,
@@ -291,8 +301,10 @@ export async function getLiveFriends(): Promise<{ me: Friend | null; groups: Fri
         displayName: meUser.displayName,
         trustLevel: trustFromTags(meUser),
         friendNumber: 0,
+        rawState: "online",
         state: "online",
         status: s(meUser.status),
+        statusDescription: s(meUser.statusDescription),
         lastLocation: meUser.location ?? null,
         lastWorld: null,
         lastSeen: null,

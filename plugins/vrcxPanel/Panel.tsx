@@ -12,7 +12,7 @@ import {
     getFilter, getGroups, getMe, isAvailable, isUsingApi, reloadFriends, setFilter, start,
     stop, subscribe, type UserInfo
 } from "./data";
-import { locationLabel, parseLocation, trustColor } from "./location";
+import { locationLabel, parseLocation, statusDotClass, trustColor } from "./location";
 
 const FILTERS: Array<{ key: FeedType | "all"; label: string; }> = [
     { key: "all", label: "All" },
@@ -146,19 +146,26 @@ function Pager({ page, pageCount, onPage, total }: { page: number; pageCount: nu
 /* ---------- 好友側欄 ---------- */
 
 function FriendRow({ friend, onOpen }: { friend: Friend; onOpen: (f: Friend) => void; }) {
+    const dotClass = statusDotClass(friend);
+    // active/offline 第二行顯示 status description(對齊 VRCX FriendItem.vue);
+    // online 第二行顯示 location(世界名 · 類型 + 國旗)。
+    const showStatusDesc = friend.rawState === "active" || friend.rawState === "offline";
     const loc = parseLocation(friend.lastLocation);
-    const detail = locationLabel(friend.lastLocation, friend.lastWorld, friend.state);
+    const secondLine = showStatusDesc
+        ? (friend.statusDescription || locationLabel(friend.lastLocation, friend.lastWorld, friend.state))
+        : locationLabel(friend.lastLocation, friend.lastWorld, friend.state);
+    const showFlag = !showStatusDesc && !!loc.flag;
     return (
         <div className="vc-vrcx-friend" onClick={() => onOpen(friend)}>
-            <div className="vc-vrcx-friend-av">
+            <div className={"vc-vrcx-friend-av" + (friend.rawState === "offline" ? " vc-vrcx-av-offline" : "")}>
                 <Avatar url={friend.thumbnail} name={friend.displayName} size={40} />
-                <span className={"vc-vrcx-status vc-vrcx-status-" + friend.state} />
+                <span className={"vc-vrcx-dot vc-vrcx-dot-" + dotClass} />
             </div>
             <div className="vc-vrcx-friend-text">
                 <span className="vc-vrcx-friend-name" style={{ color: trustColor(friend.trustLevel) }}>{friend.displayName}</span>
                 <span className="vc-vrcx-friend-loc">
-                    {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
-                    {detail}
+                    {showFlag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+                    {secondLine}
                 </span>
             </div>
         </div>
@@ -248,7 +255,7 @@ function Sidebar({ onOpen }: { onOpen: (f: Friend) => void; }) {
                     friends={g.friends}
                     keyPrefix={g.key}
                     onOpen={onOpen}
-                    defaultCollapsed={g.key === "offline"}
+                    defaultCollapsed={g.key === "active"}
                 />
             ))}
         </div>
@@ -326,7 +333,7 @@ function UserDialog({ friend, onClose }: { friend: Friend; onClose: () => void; 
                     <img className="vc-vrcx-dialog-av" src={info?.avatarImageUrl ?? friend.thumbnail ?? ""} alt="" />
                     <div className="vc-vrcx-dialog-headtext">
                         <div className="vc-vrcx-dialog-name">
-                            <span className={"vc-vrcx-status vc-vrcx-status-" + friend.state} />
+                            <span className={"vc-vrcx-dot vc-vrcx-dot-" + statusDotClass(friend)} />
                             <span style={{ color: trustColor(trust) }}>{friend.displayName}</span>
                         </div>
                         <span className="vc-vrcx-dialog-trust" style={{ color: trustColor(trust) }}>{trust || "—"}</span>

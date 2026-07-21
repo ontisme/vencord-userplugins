@@ -224,18 +224,31 @@
     color: #cfd2d6;
     font-weight: 700;
 }
-.vc-vrcx-status {
+/* 狀態點:對齊 VRCX(globals.css 顏色 + status-icon.css 實心/空心)。
+   online/joinme/askme/busy/offline = 實心;active 系列 = 同色空心描邊圈。 */
+.vc-vrcx-dot {
     position: absolute;
     right: -1px;
     bottom: -1px;
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    border: 2.5px solid #1b1b1f;
+    box-shadow: 0 0 0 2.5px #1b1b1f;
+    box-sizing: border-box;
 }
-.vc-vrcx-status-online { background: #43b581; }
-.vc-vrcx-status-offline { background: #6a6d73; }
-.vc-vrcx-status-unknown { background: #3a3a42; }
+/* 實心 */
+.vc-vrcx-dot-online { background: #2ed319; }
+.vc-vrcx-dot-joinme { background: #00b8ff; }
+.vc-vrcx-dot-askme { background: #e97c03; }
+.vc-vrcx-dot-busy { background: #c80928; }
+.vc-vrcx-dot-offline { background: #737f8d; }
+/* 空心描邊圈(state=active:app 在線但未進遊戲) */
+.vc-vrcx-dot-active { background: transparent; border: 2px solid #2ed319; }
+.vc-vrcx-dot-active-joinme { background: transparent; border: 2px solid #00b8ff; }
+.vc-vrcx-dot-active-askme { background: transparent; border: 2px solid #e97c03; }
+.vc-vrcx-dot-active-busy { background: transparent; border: 2px solid #c80928; }
+/* offline 好友頭像灰度化(對齊 VRCX .offline img) */
+.vc-vrcx-av-offline .vc-vrcx-av { filter: grayscale(1); opacity: 0.75; }
 
 .vc-vrcx-friend-text { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
 .vc-vrcx-friend-name {
@@ -317,7 +330,7 @@
     font-size: 20px;
     font-weight: 700;
 }
-.vc-vrcx-dialog-name .vc-vrcx-status { position: static; border-width: 0; width: 11px; height: 11px; }
+.vc-vrcx-dialog-name .vc-vrcx-dot { position: static; box-shadow: none; width: 11px; height: 11px; }
 .vc-vrcx-dialog-trust { font-size: 13px; font-weight: 600; }
 .vc-vrcx-dialog-statusdesc { font-size: 13px; color: #cfd2d6; }
 

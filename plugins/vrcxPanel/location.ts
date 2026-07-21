@@ -45,18 +45,43 @@ export function parseLocation(location: string | null): ParsedLocation {
     return { instanceType, region, flag };
 }
 
-// trust level -> VRCX 慣用顏色(用於名稱著色)
+// trust level -> 名稱顏色(對齊 VRCX TRUST_COLOR_DEFAULTS,appearance.js:94-102)
 export function trustColor(trust: string): string {
     switch (trust) {
-        case "Veteran User":
-        case "Trusted User": return "#ff7b42"; // 橙(Trusted)
-        case "Known User": return "#f7c34c";   // 金(Known)
-        case "User": return "#2bcf5c";         // 綠(User)
-        case "New User": return "#1778ff";     // 藍(New)
-        case "Visitor": return "#cccccc";      // 灰
-        case "Nuisance User": return "#782f2f";
-        default: return "#8a6bde";             // 預設(未知/其他)紫
+        case "Trusted User": return "#B18FFF"; // veteran 紫
+        case "Known User": return "#FF7B42";   // trusted 橙
+        case "User": return "#2BCF5C";         // known 綠
+        case "New User": return "#1778FF";     // basic 藍
+        case "Nuisance User": return "#782F2F"; // troll 暗紅
+        default: return "#CCCCCC";             // untrusted / Visitor 灰白
     }
+}
+
+// 好友狀態點的 class(對齊 VRCX userStatusClass,user.js:57-149)。
+// 回傳:online/joinme/askme/busy/offline(實心) 或 active/active-joinme/active-askme/active-busy(空心描邊) 或 ""(不顯示)。
+export function statusDotClass(f: {
+    rawState: "online" | "active" | "offline";
+    status: string;
+    lastLocation: string | null;
+}): string {
+    const status = f.status;
+    // state === active:同色空心描邊圈
+    if (f.rawState === "active") {
+        if (status === "join me") return "active-joinme";
+        if (status === "ask me") return "active-askme";
+        if (status === "busy") return "active-busy";
+        return "active";
+    }
+    // location === offline -> 灰實心
+    if (f.lastLocation === "offline") return "offline";
+    // rawState offline -> 灰
+    if (f.rawState === "offline") return "offline";
+    // 以下為 online:依 status 給實心色
+    if (status === "active") return "online";  // active status = 綠實心
+    if (status === "join me") return "joinme";
+    if (status === "ask me") return "askme";
+    if (status === "busy") return "busy";
+    return "online"; // online 但 status 缺失,綠實心
 }
 
 // 側欄位置/狀態顯示文字(對齊 VRCX):location 為 VRChat API 原值,worldName 由前端可選補上。
