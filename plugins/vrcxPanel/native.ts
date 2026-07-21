@@ -50,6 +50,19 @@ export interface FeedEntry {
     detail: string;
     location: string | null;
     thumbnail: string | null;
+    // 展開行用的額外欄位(依 type 選填)
+    worldName?: string;              // gps/online/offline 世界名
+    previousLocation?: string;       // gps 前一個位置
+    time?: number;                   // gps/offline 停留毫秒
+    status?: string;                 // status 當前狀態
+    statusDescription?: string;      // status 當前描述
+    previousStatus?: string;         // status 前一狀態
+    previousStatusDescription?: string;
+    avatarName?: string;             // avatar 頭像名
+    avatarThumbnail?: string;        // avatar 當前縮圖
+    previousAvatarThumbnail?: string; // avatar 前一縮圖
+    bio?: string;                    // bio 當前
+    previousBio?: string;            // bio 前一
 }
 
 export interface Friend {
@@ -107,38 +120,58 @@ export function getFeed(_: IpcMainInvokeEvent, opts: { limit: number; filter: Fe
     const out: FeedEntry[] = [];
     const want = (type: FeedType) => opts.filter === "all" || opts.filter === type;
 
-    // gps: id, created_at, user_id, display_name, location, world_name, previous_location, time, group_name
+    // gps: 4=location 5=world_name 6=previous_location 7=time 8=group_name
     if (want("gps") && t("_feed_gps")) {
         for (const [, r] of collect(db, t("_feed_gps"))) {
-            out.push({ createdAt: s(r[1]), type: "gps", userId: s(r[2]), displayName: s(r[3]), detail: s(r[5]), location: s(r[4]) || null, thumbnail: null });
+            out.push({
+                createdAt: s(r[1]), type: "gps", userId: s(r[2]), displayName: s(r[3]),
+                detail: s(r[5]), location: s(r[4]) || null, thumbnail: null,
+                worldName: s(r[5]), previousLocation: s(r[6]) || undefined, time: Number(r[7]) || undefined
+            });
         }
     }
-    // online_offline: id, created_at, user_id, display_name, type, location, world_name, time, group_name
+    // online_offline: 4=type 5=location 6=world_name 7=time
     if (t("_feed_online_offline")) {
         for (const [, r] of collect(db, t("_feed_online_offline"))) {
             const isOnline = s(r[4]) === "Online";
             if (!want(isOnline ? "online" : "offline")) continue;
             const world = s(r[6]);
-            out.push({ createdAt: s(r[1]), type: isOnline ? "online" : "offline", userId: s(r[2]), displayName: s(r[3]), detail: world || s(r[4]), location: s(r[5]) || null, thumbnail: null });
+            out.push({
+                createdAt: s(r[1]), type: isOnline ? "online" : "offline", userId: s(r[2]), displayName: s(r[3]),
+                detail: world || s(r[4]), location: s(r[5]) || null, thumbnail: null,
+                worldName: world, time: Number(r[7]) || undefined
+            });
         }
     }
-    // status: id, created_at, user_id, display_name, status, status_description, ...
+    // status: 4=status 5=status_description 6=previous_status 7=previous_status_description
     if (want("status") && t("_feed_status")) {
         for (const [, r] of collect(db, t("_feed_status"))) {
-            const desc = s(r[5]);
-            out.push({ createdAt: s(r[1]), type: "status", userId: s(r[2]), displayName: s(r[3]), detail: desc ? `${s(r[4])} — ${desc}` : s(r[4]), location: null, thumbnail: null });
+            out.push({
+                createdAt: s(r[1]), type: "status", userId: s(r[2]), displayName: s(r[3]),
+                detail: s(r[5]), location: null, thumbnail: null,
+                status: s(r[4]), statusDescription: s(r[5]),
+                previousStatus: s(r[6]), previousStatusDescription: s(r[7])
+            });
         }
     }
-    // avatar: id, created_at, user_id, display_name, owner_id, avatar_name, current_avatar_image_url, current_avatar_thumbnail_image_url, ...
+    // avatar: 5=avatar_name 6=cur_img 7=cur_thumb 8=prev_img 9=prev_thumb
     if (want("avatar") && t("_feed_avatar")) {
         for (const [, r] of collect(db, t("_feed_avatar"))) {
-            out.push({ createdAt: s(r[1]), type: "avatar", userId: s(r[2]), displayName: s(r[3]), detail: s(r[5]), location: null, thumbnail: s(r[7]) || null });
+            out.push({
+                createdAt: s(r[1]), type: "avatar", userId: s(r[2]), displayName: s(r[3]),
+                detail: s(r[5]), location: null, thumbnail: s(r[7]) || null,
+                avatarName: s(r[5]), avatarThumbnail: s(r[7]) || undefined, previousAvatarThumbnail: s(r[9]) || undefined
+            });
         }
     }
-    // bio: id, created_at, user_id, display_name, bio, previous_bio
+    // bio: 4=bio 5=previous_bio
     if (want("bio") && t("_feed_bio")) {
         for (const [, r] of collect(db, t("_feed_bio"))) {
-            out.push({ createdAt: s(r[1]), type: "bio", userId: s(r[2]), displayName: s(r[3]), detail: s(r[4]).slice(0, 200), location: null, thumbnail: null });
+            out.push({
+                createdAt: s(r[1]), type: "bio", userId: s(r[2]), displayName: s(r[3]),
+                detail: s(r[4]).slice(0, 200), location: null, thumbnail: null,
+                bio: s(r[4]), previousBio: s(r[5])
+            });
         }
     }
 

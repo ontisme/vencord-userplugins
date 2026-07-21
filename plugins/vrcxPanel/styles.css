@@ -102,6 +102,47 @@
 .vc-vrcx-flag { flex-shrink: 0; font-size: 14px; line-height: 1; }
 .vc-vrcx-inst { color: #8a8d93; flex-shrink: 0; }
 
+.vc-vrcx-c-caret { cursor: default; }
+.vc-vrcx-row-expandable { cursor: pointer; }
+.vc-vrcx-caret { transition: transform 0.12s; color: #8a8d93; }
+.vc-vrcx-caret-open { transform: rotate(90deg); }
+
+/* Feed 內的 inline 狀態點 */
+.vc-vrcx-idot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+.vc-vrcx-detail-status { display: inline-flex; align-items: center; gap: 6px; }
+.vc-vrcx-arrow { color: #8a8d93; flex-shrink: 0; }
+
+/* 展開行 */
+.vc-vrcx-expand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px 8px 44px;
+    background: #1c1c20;
+    border-bottom: 1px solid #2a2a2f;
+    font-size: 13px;
+    color: #d6d9dd;
+    flex-wrap: wrap;
+}
+.vc-vrcx-expand-av img { width: 64px; height: 64px; border-radius: 6px; object-fit: cover; }
+.vc-vrcx-expand-bio { white-space: pre-wrap; word-break: break-word; line-height: 1.5; }
+.vc-vrcx-time-badge {
+    background: #34343a;
+    color: #cfd2d6;
+    border-radius: 6px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+}
+.vc-vrcx-feed-empty { padding: 24px; text-align: center; color: #8a8d93; font-size: 13px; }
+
 /* Type 標籤:VRCX 為中性灰底膠囊 */
 .vc-vrcx-tag {
     display: inline-flex;

@@ -90,6 +90,7 @@ function FeedTable() {
                 </div>
                 <div className="vc-vrcx-body">
                     {rows.map((e, i) => <FeedRow key={cur * PAGE_SIZE + i} entry={e} />)}
+                    {rows.length === 0 && <div className="vc-vrcx-feed-empty">尚無事件</div>}
                 </div>
             </div>
             <Pager page={cur} pageCount={pageCount} onPage={setPage} total={feed.length} />
@@ -97,24 +98,128 @@ function FeedTable() {
     );
 }
 
-function FeedRow({ entry }: { entry: FeedEntry; }) {
+// Feed 內的 inline 狀態點(對齊 VRCX i.x-user-status,status.js:156-179)
+function feedStatusDot(status: string): string {
+    if (status === "active") return "online";
+    if (status === "join me") return "joinme";
+    if (status === "ask me") return "askme";
+    if (status === "busy") return "busy";
+    return "offline";
+}
+function StatusDot({ status }: { status: string; }) {
+    return <span className={"vc-vrcx-idot vc-vrcx-dot-" + feedStatusDot(status)} />;
+}
+
+function timeToText(ms: number): string {
+    const sec = Math.round(ms / 1000);
+    if (sec < 60) return `${sec}秒`;
+    const min = Math.round(sec / 60);
+    if (min < 60) return `${min}分`;
+    const hr = Math.floor(min / 60);
+    return `${hr}時${min % 60}分`;
+}
+
+// Detail 欄:location(gps/online/offline)、狀態點+描述(status)、頭像名(avatar)、bio。
+function FeedDetail({ entry }: { entry: FeedEntry; }) {
+    if (entry.type === "status") {
+        const sameDesc = entry.statusDescription === entry.previousStatusDescription;
+        // 只有狀態點變(文字沒變)-> 前點 -> 後點;否則後點 + 描述
+        if (sameDesc && entry.previousStatus) {
+            return (
+                <span className="vc-vrcx-detail-status">
+                    <StatusDot status={entry.previousStatus} />
+                    <svg className="vc-vrcx-arrow" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h14M13 6l6 6-6 6" /></svg>
+                    <StatusDot status={entry.status ?? ""} />
+                </span>
+            );
+        }
+        return (
+            <span className="vc-vrcx-detail-status">
+                <StatusDot status={entry.status ?? ""} />
+                <span className="vc-vrcx-detail-text">{entry.statusDescription}</span>
+            </span>
+        );
+    }
+    // gps/online/offline/avatar/bio:location 或純文字
     const loc = parseLocation(entry.location);
     return (
-        <div className="vc-vrcx-row">
-            <span className="vc-vrcx-c-caret">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
-            </span>
-            <span className="vc-vrcx-c-date">{fmtDate(entry.createdAt)}</span>
-            <span className="vc-vrcx-c-type">
-                <span className="vc-vrcx-tag">{TYPE_LABEL[entry.type]}</span>
-            </span>
-            <span className="vc-vrcx-c-user">{entry.displayName}</span>
-            <span className="vc-vrcx-c-detail">
-                {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
-                <span className="vc-vrcx-detail-text">{entry.detail}</span>
-                {loc.instanceType && <span className="vc-vrcx-inst"> · {loc.instanceType}</span>}
-            </span>
-        </div>
+        <>
+            {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+            <span className="vc-vrcx-detail-text">{entry.detail}</span>
+            {loc.instanceType && <span className="vc-vrcx-inst"> · {loc.instanceType}</span>}
+        </>
+    );
+}
+
+// 展開行:依 type 顯示詳情(GPS 前後位置+時長、Avatar 前後縮圖、Status 前後、Bio diff)
+function FeedExpanded({ entry }: { entry: FeedEntry; }) {
+    if (entry.type === "gps" && entry.previousLocation) {
+        return (
+            <div className="vc-vrcx-expand">
+                <span className="vc-vrcx-detail-text">{parseLocation(entry.previousLocation).instanceType ? entry.previousLocation : entry.previousLocation}</span>
+                {entry.time ? <span className="vc-vrcx-time-badge">{timeToText(entry.time)}</span> : null}
+                <svg className="vc-vrcx-arrow" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4v14M6 13l6 6 6-6" /></svg>
+                <span className="vc-vrcx-detail-text">{entry.worldName || entry.location}</span>
+            </div>
+        );
+    }
+    if (entry.type === "offline" && entry.time) {
+        return <div className="vc-vrcx-expand"><span className="vc-vrcx-detail-text">{entry.worldName}</span><span className="vc-vrcx-time-badge">{timeToText(entry.time)}</span></div>;
+    }
+    if (entry.type === "avatar") {
+        return (
+            <div className="vc-vrcx-expand vc-vrcx-expand-av">
+                {entry.previousAvatarThumbnail && <img src={entry.previousAvatarThumbnail} alt="" />}
+                {entry.previousAvatarThumbnail && <svg className="vc-vrcx-arrow" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h14M13 6l6 6-6 6" /></svg>}
+                {entry.avatarThumbnail && <img src={entry.avatarThumbnail} alt="" />}
+                <span className="vc-vrcx-detail-text">{entry.avatarName}</span>
+            </div>
+        );
+    }
+    if (entry.type === "status") {
+        return (
+            <div className="vc-vrcx-expand">
+                <StatusDot status={entry.previousStatus ?? ""} /><span className="vc-vrcx-detail-text">{entry.previousStatusDescription}</span>
+                <svg className="vc-vrcx-arrow" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h14M13 6l6 6-6 6" /></svg>
+                <StatusDot status={entry.status ?? ""} /><span className="vc-vrcx-detail-text">{entry.statusDescription}</span>
+            </div>
+        );
+    }
+    if (entry.type === "bio") {
+        return <div className="vc-vrcx-expand vc-vrcx-expand-bio">{entry.bio}</div>;
+    }
+    return null;
+}
+
+// 可展開的 type
+const EXPANDABLE = new Set<FeedType>(["gps", "offline", "avatar", "status", "bio"]);
+
+function FeedRow({ entry }: { entry: FeedEntry; }) {
+    const [expanded, setExpanded] = useState(false);
+    const canExpand = EXPANDABLE.has(entry.type) &&
+        (entry.type === "gps" ? !!entry.previousLocation
+            : entry.type === "offline" ? !!entry.time
+                : entry.type === "avatar" ? !!entry.previousAvatarThumbnail
+                    : entry.type === "status" ? !!entry.previousStatus
+                        : entry.type === "bio" ? !!entry.previousBio
+                            : false);
+    return (
+        <>
+            <div className={"vc-vrcx-row" + (canExpand ? " vc-vrcx-row-expandable" : "")} onClick={() => canExpand && setExpanded(e => !e)}>
+                <span className="vc-vrcx-c-caret">
+                    {canExpand && (
+                        <svg className={"vc-vrcx-caret" + (expanded ? " vc-vrcx-caret-open" : "")} width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
+                    )}
+                </span>
+                <span className="vc-vrcx-c-date">{fmtDate(entry.createdAt)}</span>
+                <span className="vc-vrcx-c-type">
+                    <span className="vc-vrcx-tag">{TYPE_LABEL[entry.type]}</span>
+                </span>
+                <span className="vc-vrcx-c-user">{entry.displayName}</span>
+                <span className="vc-vrcx-c-detail"><FeedDetail entry={entry} /></span>
+            </div>
+            {expanded && canExpand && <FeedExpanded entry={entry} />}
+        </>
     );
 }
 
