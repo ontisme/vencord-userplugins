@@ -14,19 +14,19 @@
 
 ## 2. 技術可行性(2026-07-21 實測確認)
 
-1. CSP:Vesktop 1.6.5 main process 不處理 CSP,而是 `require()` 使用者自建 Vencord dist 的 `vencordDesktopMain.js`,其中 `initCsp` 以 `CspPolicies` 白名單改寫 Discord 的 CSP header。Vencord 官方設計允許 plugin 在 `native.ts` 直接向 `CspPolicies` 加網域與任意 directive。
-2. Discord CSP 本身已有明確 `frame-src` 白名單,append `www.tradingview-widget.com` 不影響其他來源。
-3. build 腳本會自動把 `src/userplugins/*/native.ts` 打進 `vencordDesktopMain.js`;CSP 變更需完整重啟 Vesktop(僅 Ctrl+R 無效)。
-4. TradingView widget 頁面(`https://www.tradingview-widget.com/embed-widget/advanced-chart/`)HTTP 200,無 X-Frame-Options / frame-ancestors 限制,可直接 iframe 嵌入,無需載入外部 script(自行組 iframe URL,widget 設定以 URL hash 帶入),因此不動 script-src。
+1. Vesktop 1.6.5 main process `require()` 使用者自建 Vencord dist 的 `vencordDesktopMain.js`;build 腳本會自動把 `src/userplugins/*/native.ts` 打進該檔,插件因此可在 main process 註冊 IPC 與操作 Electron API。native 變更需完整重啟 Vesktop(僅 Ctrl+R 無效)。
+2. TradingView embed widget(`www.tradingview-widget.com`)可 iframe(無 frame-ancestors 限制、Discord CSP 可經 `CspPolicies` 白名單放行),但 **台股 TWSE 無 embed 授權**:圖表資料回「此商品僅在 TradingView 上可用」,實測確認不可用。「所有股市都要」因此不能走 embed widget。
+3. 完整版 TradingView(`www.tradingview.com` / `tw.tradingview.com`)送 `frame-ancestors 'none'`,不可 iframe。
+4. 結論:由插件 native 以 Electron `WebContentsView` 將完整版 TradingView 疊在主視窗的頁面區域上。完整站支援所有市場(含台股),免登入可用延遲行情,登入(session 持久)可用完整功能。不需動 CSP。
 
 ## 3. 架構與元件
 
 ```
 plugins/stockPanel/
-  index.tsx      definePlugin:patch、renderLink、開閉狀態
-  StockPage.tsx  全版頁面(portal 到 page 容器)+ TradingView iframe
-  native.ts      CspPolicies 加 frame-src 白名單
-  styles.css     頁面與 iframe 版面
+  index.tsx      definePlugin:patch、renderLink
+  StockPage.tsx  全版頁面(portal 到 page 容器)+ 回報 WebContentsView 座標
+  native.ts      main process:WebContentsView 建立/定位/回收
+  styles.css     頁面版面與載入提示
 ```
 
 ## 4. 入口按鈕(好友下方)
@@ -40,34 +40,35 @@ plugins/stockPanel/
 ## 5. 頁面(StockPage)
 
 - 開啟:`ReactDOM.createPortal` 到 `[class*="page_"]` 容器,`position: absolute; inset: 0` 全版覆蓋主內容區;側欄與伺服器列保持可見可點
-- 頂欄:標題「股票查詢」+ 關閉(X)按鈕;其餘空間全部給 TradingView iframe
-- iframe URL:`https://www.tradingview-widget.com/embed-widget/advanced-chart/?locale=zh_TW#<encodeURIComponent(JSON config)>`
-  - config:`autosize、symbol 預設 TWSE:2330、interval D、timezone Asia/Taipei、locale zh_TW、allow_symbol_change、withdateranges、details、hide_side_toolbar:false`
-  - theme 依 Discord 主題(ThemeStore,dark 系 → dark,light → light);主題切換時重建 iframe
-- 換股票:使用 widget 內建 symbol search(涵蓋所有市場),不另做搜尋列
+- 頂欄:標題「股票查詢」+ 關閉(X)按鈕;其餘空間為 host 區域,顯示「TradingView 載入中」置中提示
+- host 區域掛載後量測 `getBoundingClientRect`,IPC 呼叫 native `openChart(bounds, url)`;`ResizeObserver` 與 window resize 時 `setChartBounds` 同步座標;卸載時 `closeChart`
+- URL:`https://tw.tradingview.com/chart/?symbol=TWSE%3A2330`(zh_TW 介面,預設台積電);完整站自行記憶主題與最後檢視的 symbol
+- 換股票:完整站內建 symbol search,涵蓋所有市場
 - 關閉行為(任一觸發即關):X 按鈕、ESC、Flux `CHANNEL_SELECT`(點任何頻道/私訊)、document 層 click 監聽點擊頁面外的路由連結(好友/Nitro/商店等)
+- 已知限制:WebContentsView 為原生層,座標假設 zoom 100%;Discord 彈窗/工具提示若落在圖表區域內會被蓋住
 
-## 6. CSP(native.ts)
+## 6. native.ts(main process)
 
-```ts
-import { CspPolicies } from "@main/csp";
-CspPolicies["www.tradingview-widget.com"] = ["frame-src"];
-```
-
+- `openChart(bounds, url)`:以 `BrowserWindow.fromWebContents(event.sender)` 找主視窗,建立 sandbox 化 `WebContentsView`(背景色 #131722),`contentView.addChildView` 後 `setBounds` + `loadURL`;`setWindowOpenHandler` 一律 `shell.openExternal` 外開
+- `setChartBounds(bounds)`:同步座標
+- `closeChart()`:`removeChildView` + `webContents.close()` 回收
+- 主 renderer `did-start-loading`(Ctrl+R 重載)時自動回收,避免殘留
 - 生效條件:重新 build 後完整重啟 Vesktop
 
 ## 7. 錯誤處理
 
 - renderLink 外層包 ErrorBoundary;patch 失敗時 Vencord 靜默停用該 patch,不影響側欄本體
 - portal 目標 `[class*="page_"]` 不存在時不渲染(返回 null)
-- iframe 載入失敗(離線等)顯示 TradingView 自身的錯誤畫面,插件不另處理
+- TradingView 載入失敗(離線等)由該站自身錯誤畫面呈現,插件不另處理
+- 重複 openChart 先回收舊 view,單例
 
 ## 8. 測試
 
 - `pnpm build` 與 TypeScript 檢查通過
 - CDP(9222)實機驗證:
   - 側欄好友下方出現「股票」按鈕,樣式與原生一致
-  - 點擊開啟全版頁面,TradingView 圖表載入(CSP 生效,需先重啟 Vesktop)
+  - 點擊開啟全版頁面,WebContentsView 出現且對齊 host 區域(CDP targets 可見 tradingview page target)
+  - 台股 TWSE:2330 圖表有資料(embed widget 授權問題已解)
   - symbol search 可查美股/台股/港股/加密貨幣等
-  - X、ESC、切頻道、點其他側欄連結皆可關閉
+  - X、ESC、切頻道、點其他側欄連結皆可關閉且 view 回收
   - 重載後乾淨 session 再驗一次錨點
