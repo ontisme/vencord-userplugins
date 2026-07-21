@@ -24,21 +24,27 @@ const GuildReadStateStore = findStoreLazy("GuildReadStateStore");
 const ApplicationStreamingStore = findStoreLazy("ApplicationStreamingStore");
 const VoiceStateStore = findStoreLazy("VoiceStateStore");
 
-// 同步原生狀態:該伺服器是否有人正在直播、自己是否在該伺服器語音中
-function useGuildLiveStatus(guildId: string): { live: boolean; inVoice: boolean; } {
+// 同步原生狀態:該伺服器是否有人直播、自己是否在該伺服器語音中、該伺服器語音中總人數
+function useGuildLiveStatus(guildId: string): { live: boolean; inVoice: boolean; voiceCount: number; } {
     return useStateFromStores([ApplicationStreamingStore, VoiceStateStore], () => {
         let live = false;
         try {
             live = ApplicationStreamingStore.getAllActiveStreams().some((s: any) => s.guildId === guildId);
         } catch { /* store 尚未就緒 */ }
 
+        const myId = UserStore.getCurrentUser()?.id;
         let inVoice = false;
+        let voiceCount = 0;
         try {
-            const myState = VoiceStateStore.getVoiceStateForUser(UserStore.getCurrentUser()?.id);
-            inVoice = myState?.guildId === guildId;
-        } catch { /* ignore */ }
+            const states = VoiceStateStore.getVoiceStates(guildId);
+            for (const [userId, state] of Object.entries<any>(states ?? {})) {
+                if (!state?.channelId) continue;
+                voiceCount += 1;
+                if (userId === myId) inVoice = true;
+            }
+        } catch { /* store 尚未就緒 */ }
 
-        return { live, inVoice };
+        return { live, inVoice, voiceCount };
     });
 }
 
@@ -71,7 +77,7 @@ function GuildIcon({ guildId, inFolder, folderId }: { guildId: string; inFolder?
             GuildReadStateStore.getMentionCount(guildId)
         ]
     );
-    const { live, inVoice } = useGuildLiveStatus(guildId);
+    const { live, inVoice, voiceCount } = useGuildLiveStatus(guildId);
     if (!guild) return null;
     const iconUrl = guildIconUrl(guildId, guild.icon, 48);
 
@@ -112,6 +118,15 @@ function GuildIcon({ guildId, inFolder, folderId }: { guildId: string; inFolder?
                     : <span className="vc-favsrv-initial">{guildInitial(guild.name)}</span>}
             </div>
             {live && <span className="vc-favsrv-live">LIVE</span>}
+            {voiceCount > 0 && (
+                <span className="vc-favsrv-voice" title={`${voiceCount} 人在語音`}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                        <path d="M19 10v2a7 7 0 0 1-14 0v-2H3v2a9 9 0 0 0 8 8.94V23h2v-2.06A9 9 0 0 0 21 12v-2h-2z" />
+                    </svg>
+                    {voiceCount}
+                </span>
+            )}
             {mentions > 0 && <span className="vc-favsrv-badge">{mentions > 99 ? "99+" : mentions}</span>}
         </div>
     );

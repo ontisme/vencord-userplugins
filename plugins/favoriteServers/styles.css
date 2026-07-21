@@ -124,6 +124,28 @@
     box-shadow: 0 0 0 2px var(--background-base-lowest), 0 0 0 4px #23a55a;
 }
 
+/* 有人在語音:圖示左下角綠色膠囊(耳機 + 人數,仿原生) */
+.vc-favsrv-voice {
+    position: absolute;
+    left: 6px;
+    bottom: -2px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: #23a55a;
+    color: var(--white);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    height: 16px;
+    padding: 0 5px 0 3px;
+    border: 3px solid var(--background-base-lowest);
+    box-sizing: content-box;
+    pointer-events: none;
+}
+.vc-favsrv-voice svg { flex-shrink: 0; }
+
 /* 拖曳放置目標高亮 */
 .vc-favsrv-dropinto .vc-favsrv-icon,
 .vc-favsrv-dropinto.vc-favsrv-folder-head {
