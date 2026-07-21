@@ -16,7 +16,7 @@ let feed: FeedEntry[] = [];
 let friends: Friend[] = [];
 let available = false;
 let filter: FeedType | "all" = "all";
-let feedLimit = 100;
+const feedLimit = 500;
 
 const listeners = new Set<() => void>();
 let timer: ReturnType<typeof setInterval> | null = null;
@@ -47,11 +47,6 @@ export function getFilter(): FeedType | "all" {
 export function setFilter(f: FeedType | "all") {
     if (filter === f) return;
     filter = f;
-    void refresh();
-}
-
-export function loadMore() {
-    feedLimit += 100;
     void refresh();
 }
 

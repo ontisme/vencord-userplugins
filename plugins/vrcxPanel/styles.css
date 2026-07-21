@@ -1,10 +1,11 @@
-/* VRCX 面板:左 Feed 表格 + 右好友側欄,填滿好友頁內容區 */
+/* VRCX 面板:左 Feed 表格 + 右好友側欄。深色、對齊 VRCX 視覺。 */
 .vc-vrcx-panel {
     display: flex;
     height: 100%;
     min-height: 0;
     overflow: hidden;
     color: var(--text-default);
+    background: #1b1b1f;
 }
 
 .vc-vrcx-empty {
@@ -14,43 +15,49 @@
     font-size: 14px;
 }
 
-/* 左側 Feed */
+/* ---------- 左側 Feed ---------- */
 .vc-vrcx-feed {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    padding: 12px;
+    padding: 12px 12px 8px;
     gap: 10px;
 }
 
-.vc-vrcx-filters {
+.vc-vrcx-toolbar {
     display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+    align-items: center;
     flex-shrink: 0;
 }
+.vc-vrcx-filters {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
 .vc-vrcx-filter {
-    height: 28px;
-    padding: 0 12px;
+    height: 30px;
+    padding: 0 14px;
     border: none;
     border-radius: 6px;
-    background: var(--background-surface-higher);
-    color: var(--text-muted);
-    font-size: 13px;
+    background: transparent;
+    color: #cfd2d6;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
 }
-.vc-vrcx-filter:hover { background: var(--background-surface-highest); color: var(--text-default); }
-.vc-vrcx-filter-active { background: var(--brand-500); color: var(--white); }
+.vc-vrcx-filter:hover { background: #2b2b30; }
+.vc-vrcx-filter-active { background: #4a63d8; color: #fff; }
 
 .vc-vrcx-table {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    border: 1px solid var(--border-subtle);
-    border-radius: 8px;
+    border: 1px solid #303035;
+    border-radius: 6px;
     overflow: hidden;
+    background: #202024;
 }
 .vc-vrcx-body {
     flex: 1;
@@ -60,119 +67,164 @@
 
 .vc-vrcx-row {
     display: grid;
-    grid-template-columns: 96px 92px 150px 1fr;
+    grid-template-columns: 24px 108px 88px 150px 1fr;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border-subtle);
-    font-size: 13px;
+    padding: 9px 12px;
+    border-bottom: 1px solid #2a2a2f;
+    font-size: 13.5px;
 }
 .vc-vrcx-head {
+    background: #202024;
+    color: #8a8d93;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.02em;
     position: sticky;
     top: 0;
-    background: var(--background-surface-high);
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+    z-index: 1;
 }
-.vc-vrcx-body .vc-vrcx-row:hover { background: var(--background-mod-subtle); }
+.vc-vrcx-body .vc-vrcx-row:nth-child(even) { background: #232327; }
+.vc-vrcx-body .vc-vrcx-row:hover { background: #2a2a30; }
 
-.vc-vrcx-c-date { color: var(--text-muted); white-space: nowrap; }
+.vc-vrcx-c-caret { color: #6a6d73; display: flex; align-items: center; }
+.vc-vrcx-c-date { color: #cfd2d6; white-space: nowrap; }
 .vc-vrcx-c-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vc-vrcx-c-detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-default); }
-.vc-vrcx-inst { color: var(--text-muted); }
+.vc-vrcx-c-detail {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    overflow: hidden;
+    white-space: nowrap;
+    color: #d6d9dd;
+}
+.vc-vrcx-detail-text { overflow: hidden; text-overflow: ellipsis; }
+.vc-vrcx-flag { flex-shrink: 0; font-size: 14px; line-height: 1; }
+.vc-vrcx-inst { color: #8a8d93; flex-shrink: 0; }
 
+/* Type 標籤:VRCX 為中性灰底膠囊 */
 .vc-vrcx-tag {
     display: inline-flex;
     align-items: center;
-    height: 20px;
-    padding: 0 8px;
-    border-radius: 10px;
-    font-size: 11px;
+    height: 22px;
+    padding: 0 12px;
+    border-radius: 11px;
+    font-size: 12px;
     font-weight: 600;
-    background: var(--background-surface-highest);
-    color: var(--text-default);
+    background: #34343a;
+    color: #d6d9dd;
 }
-.vc-vrcx-tag-gps { background: color-mix(in oklab, #5865f2 30%, transparent); }
-.vc-vrcx-tag-online { background: color-mix(in oklab, #23a55a 30%, transparent); }
-.vc-vrcx-tag-offline { background: color-mix(in oklab, #80848e 30%, transparent); }
-.vc-vrcx-tag-status { background: color-mix(in oklab, #f0b232 30%, transparent); }
-.vc-vrcx-tag-avatar { background: color-mix(in oklab, #eb459e 30%, transparent); }
-.vc-vrcx-tag-bio { background: color-mix(in oklab, #00a8fc 30%, transparent); }
 
-.vc-vrcx-more {
+/* 分頁器 */
+.vc-vrcx-pager {
     display: flex;
-    justify-content: center;
-    padding: 10px;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    padding: 4px 2px;
+    font-size: 13px;
+    color: #cfd2d6;
 }
-.vc-vrcx-more button {
+.vc-vrcx-pager-info { margin-right: auto; color: #8a8d93; }
+.vc-vrcx-pager-btn, .vc-vrcx-pager-num {
     height: 30px;
-    padding: 0 16px;
+    min-width: 30px;
+    padding: 0 10px;
     border: none;
     border-radius: 6px;
-    background: var(--background-surface-higher);
-    color: var(--text-default);
+    background: #2b2b30;
+    color: #cfd2d6;
+    font-size: 13px;
     cursor: pointer;
 }
-.vc-vrcx-more button:hover { background: var(--background-surface-highest); }
+.vc-vrcx-pager-btn:disabled { opacity: 0.4; cursor: default; }
+.vc-vrcx-pager-btn:not(:disabled):hover, .vc-vrcx-pager-num:hover { background: #34343a; }
+.vc-vrcx-pager-active { background: #4a63d8; color: #fff; }
+.vc-vrcx-pager-ell { color: #8a8d93; padding: 0 2px; }
 
-/* 右側好友側欄 */
+/* ---------- 右側好友側欄 ---------- */
 .vc-vrcx-sidebar {
-    width: 260px;
+    width: 288px;
     flex-shrink: 0;
-    border-left: 1px solid var(--border-subtle);
-    padding: 12px;
+    border-left: 1px solid #303035;
+    padding: 12px 14px;
     overflow-y: auto;
     scrollbar-width: thin;
+    background: #1b1b1f;
 }
 .vc-vrcx-side-head {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #2a2a2f;
+}
+.vc-vrcx-side-tab {
     font-size: 15px;
     font-weight: 700;
-    margin-bottom: 2px;
+    color: #fff;
 }
-.vc-vrcx-side-note {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 12px;
-}
+.vc-vrcx-side-note { font-size: 11px; color: #8a8d93; }
+
+.vc-vrcx-group { margin-bottom: 8px; }
 .vc-vrcx-group-title {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--text-muted);
-    text-transform: uppercase;
+    color: #8a8d93;
     letter-spacing: 0.03em;
-    margin: 12px 0 6px;
+    margin: 10px 0 6px;
 }
 
 .vc-vrcx-friend {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 6px 4px;
+    gap: 10px;
+    padding: 5px 4px;
     border-radius: 6px;
 }
-.vc-vrcx-friend:hover { background: var(--background-mod-subtle); }
-.vc-vrcx-dot {
-    width: 9px;
-    height: 9px;
+.vc-vrcx-friend:hover { background: #26262b; }
+
+.vc-vrcx-friend-av { position: relative; flex-shrink: 0; }
+.vc-vrcx-av {
     border-radius: 50%;
-    flex-shrink: 0;
+    object-fit: cover;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
-.vc-vrcx-dot-online { background: #23a55a; }
-.vc-vrcx-dot-offline { background: #80848e; }
-.vc-vrcx-dot-unknown { background: var(--background-surface-highest); }
-.vc-vrcx-friend-text { display: flex; flex-direction: column; min-width: 0; }
+.vc-vrcx-av-fallback {
+    background: #3a3a42;
+    color: #cfd2d6;
+    font-weight: 700;
+}
+.vc-vrcx-status {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2.5px solid #1b1b1f;
+}
+.vc-vrcx-status-online { background: #43b581; }
+.vc-vrcx-status-offline { background: #6a6d73; }
+.vc-vrcx-status-unknown { background: #3a3a42; }
+
+.vc-vrcx-friend-text { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
 .vc-vrcx-friend-name {
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 .vc-vrcx-friend-loc {
-    font-size: 11px;
-    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #8a8d93;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

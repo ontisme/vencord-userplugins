@@ -146,6 +146,19 @@ export function getFriends(): Friend[] {
             if (!prev || at > prev.at) lastGps.set(uid, { world: s(r[5]), location: s(r[4]), at });
         }
     }
+    // feed_avatar 各人最新一筆縮圖,補好友頭像(拿不到者前端用首字母色塊)
+    const lastAvatar = new Map<string, { thumb: string; at: string; }>();
+    const avTable = db.tables[prefix + "_feed_avatar"];
+    if (avTable) {
+        for (const [, r] of collect(db, avTable)) {
+            const uid = s(r[2]);
+            const at = s(r[1]);
+            const thumb = s(r[7]);
+            if (!thumb) continue;
+            const prev = lastAvatar.get(uid);
+            if (!prev || at > prev.at) lastAvatar.set(uid, { thumb, at });
+        }
+    }
 
     const friends: Friend[] = [];
     const fTable = db.tables[prefix + "_friend_log_current"];
@@ -170,7 +183,7 @@ export function getFriends(): Friend[] {
                 lastLocation: location,
                 lastWorld: world,
                 lastSeen,
-                thumbnail: null
+                thumbnail: lastAvatar.get(uid)?.thumb ?? null
             });
         }
     }

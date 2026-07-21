@@ -5,12 +5,13 @@
  */
 
 import ErrorBoundary from "@components/ErrorBoundary";
-import { useEffect, useReducer } from "@webpack/common";
+import { useEffect, useMemo, useReducer, useState } from "@webpack/common";
 
 import {
     type FeedEntry, type FeedType, type Friend, getFeed, getFilter, getFriends,
-    isAvailable, loadMore, setFilter, startPolling, stopPolling, subscribe
+    isAvailable, setFilter, startPolling, stopPolling, subscribe
 } from "./data";
+import { parseLocation, trustColor } from "./location";
 
 const FILTERS: Array<{ key: FeedType | "all"; label: string; }> = [
     { key: "all", label: "All" },
@@ -26,105 +27,172 @@ const TYPE_LABEL: Record<FeedType, string> = {
     gps: "GPS", online: "Online", offline: "Offline", status: "Status", avatar: "Avatar", bio: "Bio"
 };
 
+const PAGE_SIZE = 20;
+
 function fmtDate(iso: string): string {
-    // 2026-07-21T17:29:35Z -> 07/21 01:29(當地)
     const d = new Date(iso);
     if (isNaN(d.getTime())) return iso.slice(5, 16).replace("T", " ");
     const p = (n: number) => String(n).padStart(2, "0");
     return `${p(d.getMonth() + 1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-// location 字串 -> instance 類型標籤
-function instanceType(location: string | null): string | null {
-    if (!location || location === "traveling" || location === "private") return null;
-    if (location.includes("~private")) return "Private";
-    if (location.includes("~friends(")) return "Friends";
-    if (location.includes("~friends")) return "Friends+";
-    if (location.includes("~hidden")) return "Friends+";
-    if (location.includes("~group")) return "Group";
-    return "Public";
+function initials(name: string): string {
+    const t = name.replace(/[^\p{L}\p{N}]/gu, "").slice(0, 2);
+    return (t || name.slice(0, 2) || "?").toUpperCase();
 }
+
+function Avatar({ url, name, size }: { url: string | null; name: string; size: number; }) {
+    const [failed, setFailed] = useState(false);
+    if (url && !failed) {
+        return <img className="vc-vrcx-av" style={{ width: size, height: size }} src={url} alt="" onError={() => setFailed(true)} />;
+    }
+    return (
+        <span className="vc-vrcx-av vc-vrcx-av-fallback" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+            {initials(name)}
+        </span>
+    );
+}
+
+/* ---------- Feed 表格 ---------- */
 
 function FeedTable() {
     const feed = getFeed();
     const filter = getFilter();
+    const [page, setPage] = useState(0);
+
+    const pageCount = Math.max(1, Math.ceil(feed.length / PAGE_SIZE));
+    const cur = Math.min(page, pageCount - 1);
+    const rows = feed.slice(cur * PAGE_SIZE, cur * PAGE_SIZE + PAGE_SIZE);
 
     return (
         <div className="vc-vrcx-feed">
-            <div className="vc-vrcx-filters">
-                {FILTERS.map(f => (
-                    <button
-                        key={f.key}
-                        className={"vc-vrcx-filter" + (filter === f.key ? " vc-vrcx-filter-active" : "")}
-                        onClick={() => setFilter(f.key)}
-                    >
-                        {f.label}
-                    </button>
-                ))}
+            <div className="vc-vrcx-toolbar">
+                <div className="vc-vrcx-filters">
+                    {FILTERS.map(f => (
+                        <button
+                            key={f.key}
+                            className={"vc-vrcx-filter" + (filter === f.key ? " vc-vrcx-filter-active" : "")}
+                            onClick={() => { setFilter(f.key); setPage(0); }}
+                        >
+                            {f.label}
+                        </button>
+                    ))}
+                </div>
             </div>
             <div className="vc-vrcx-table">
                 <div className="vc-vrcx-row vc-vrcx-head">
-                    <span className="vc-vrcx-c-date">Date</span>
-                    <span className="vc-vrcx-c-type">Type</span>
-                    <span className="vc-vrcx-c-user">User</span>
-                    <span className="vc-vrcx-c-detail">Detail</span>
+                    <span className="vc-vrcx-c-caret" />
+                    <span className="vc-vrcx-c-date">DATE</span>
+                    <span className="vc-vrcx-c-type">TYPE</span>
+                    <span className="vc-vrcx-c-user">USER</span>
+                    <span className="vc-vrcx-c-detail">DETAIL</span>
                 </div>
                 <div className="vc-vrcx-body">
-                    {feed.map((e, i) => <FeedRow key={i} entry={e} />)}
-                    {feed.length > 0 && (
-                        <div className="vc-vrcx-more">
-                            <button onClick={loadMore}>載入更多</button>
-                        </div>
-                    )}
+                    {rows.map((e, i) => <FeedRow key={cur * PAGE_SIZE + i} entry={e} />)}
                 </div>
             </div>
+            <Pager page={cur} pageCount={pageCount} onPage={setPage} total={feed.length} />
         </div>
     );
 }
 
 function FeedRow({ entry }: { entry: FeedEntry; }) {
-    const inst = instanceType(entry.location);
+    const loc = parseLocation(entry.location);
     return (
         <div className="vc-vrcx-row">
+            <span className="vc-vrcx-c-caret">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 6l6 6-6 6" /></svg>
+            </span>
             <span className="vc-vrcx-c-date">{fmtDate(entry.createdAt)}</span>
             <span className="vc-vrcx-c-type">
-                <span className={"vc-vrcx-tag vc-vrcx-tag-" + entry.type}>{TYPE_LABEL[entry.type]}</span>
+                <span className="vc-vrcx-tag">{TYPE_LABEL[entry.type]}</span>
             </span>
             <span className="vc-vrcx-c-user">{entry.displayName}</span>
             <span className="vc-vrcx-c-detail">
-                {entry.detail}
-                {inst && <span className="vc-vrcx-inst"> · {inst}</span>}
+                {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+                <span className="vc-vrcx-detail-text">{entry.detail}</span>
+                {loc.instanceType && <span className="vc-vrcx-inst"> · {loc.instanceType}</span>}
             </span>
         </div>
     );
 }
 
+function Pager({ page, pageCount, onPage, total }: { page: number; pageCount: number; onPage: (p: number) => void; total: number; }) {
+    // 顯示最多 5 個頁碼 + 首尾;簡化為 VRCX 風格(Previous / 頁碼 / Next)
+    const nums: number[] = [];
+    const from = Math.max(0, Math.min(page - 2, pageCount - 5));
+    for (let i = from; i < Math.min(from + 5, pageCount); i++) nums.push(i);
+
+    return (
+        <div className="vc-vrcx-pager">
+            <span className="vc-vrcx-pager-info">共 {total} 筆</span>
+            <button className="vc-vrcx-pager-btn" disabled={page === 0} onClick={() => onPage(page - 1)}>‹ Previous</button>
+            {nums.map(n => (
+                <button
+                    key={n}
+                    className={"vc-vrcx-pager-num" + (n === page ? " vc-vrcx-pager-active" : "")}
+                    onClick={() => onPage(n)}
+                >
+                    {n + 1}
+                </button>
+            ))}
+            {from + 5 < pageCount && <span className="vc-vrcx-pager-ell">…</span>}
+            <button className="vc-vrcx-pager-btn" disabled={page >= pageCount - 1} onClick={() => onPage(page + 1)}>Next ›</button>
+        </div>
+    );
+}
+
+/* ---------- 好友側欄 ---------- */
+
 function FriendRow({ friend }: { friend: Friend; }) {
-    const dot = friend.state === "online" ? "online" : friend.state === "offline" ? "offline" : "unknown";
+    const loc = parseLocation(friend.lastLocation);
+    const detail = friend.lastWorld
+        ? friend.lastWorld + (loc.instanceType ? ` · ${loc.instanceType}` : "")
+        : null;
     return (
         <div className="vc-vrcx-friend">
-            <span className={"vc-vrcx-dot vc-vrcx-dot-" + dot} />
+            <div className="vc-vrcx-friend-av">
+                <Avatar url={friend.thumbnail} name={friend.displayName} size={40} />
+                <span className={"vc-vrcx-status vc-vrcx-status-" + (friend.state === "online" ? "online" : friend.state === "offline" ? "offline" : "unknown")} />
+            </div>
             <div className="vc-vrcx-friend-text">
-                <span className="vc-vrcx-friend-name">{friend.displayName}</span>
-                {friend.lastWorld && <span className="vc-vrcx-friend-loc">{friend.lastWorld}</span>}
+                <span className="vc-vrcx-friend-name" style={{ color: trustColor(friend.trustLevel) }}>{friend.displayName}</span>
+                {detail && (
+                    <span className="vc-vrcx-friend-loc">
+                        {loc.flag && <span className="vc-vrcx-flag">{loc.flag}</span>}
+                        {detail}
+                    </span>
+                )}
             </div>
         </div>
     );
 }
 
-function Sidebar() {
+function Sidebar({ me }: { me: Friend | null; }) {
     const friends = getFriends();
-    const online = friends.filter(f => f.state === "online").sort((a, b) => a.displayName.localeCompare(b.displayName));
-    const offline = friends.filter(f => f.state !== "online").sort((a, b) => a.displayName.localeCompare(b.displayName));
+    const online = useMemo(() => friends.filter(f => f.state === "online").sort((a, b) => a.displayName.localeCompare(b.displayName)), [friends]);
+    const offline = useMemo(() => friends.filter(f => f.state !== "online").sort((a, b) => a.displayName.localeCompare(b.displayName)), [friends]);
 
     return (
         <div className="vc-vrcx-sidebar">
-            <div className="vc-vrcx-side-head">好友 ({friends.length})</div>
-            <div className="vc-vrcx-side-note">線上狀態為 VRCX 歷史推估</div>
-            <div className="vc-vrcx-group-title">ONLINE — {online.length}</div>
-            {online.map(f => <FriendRow key={f.userId} friend={f} />)}
-            <div className="vc-vrcx-group-title">OFFLINE — {offline.length}</div>
-            {offline.map(f => <FriendRow key={f.userId} friend={f} />)}
+            <div className="vc-vrcx-side-head">
+                <span className="vc-vrcx-side-tab vc-vrcx-side-tab-active">好友 ({online.length}/{friends.length})</span>
+                <span className="vc-vrcx-side-note">線上狀態為 VRCX 歷史推估</span>
+            </div>
+            {me && (
+                <div className="vc-vrcx-group">
+                    <div className="vc-vrcx-group-title">ME</div>
+                    <FriendRow friend={me} />
+                </div>
+            )}
+            <div className="vc-vrcx-group">
+                <div className="vc-vrcx-group-title">ONLINE — {online.length}</div>
+                {online.map(f => <FriendRow key={f.userId} friend={f} />)}
+            </div>
+            <div className="vc-vrcx-group">
+                <div className="vc-vrcx-group-title">OFFLINE — {offline.length}</div>
+                {offline.map(f => <FriendRow key={f.userId} friend={f} />)}
+            </div>
         </div>
     );
 }
@@ -148,7 +216,7 @@ function PanelInner() {
     return (
         <div className="vc-vrcx-panel">
             <FeedTable />
-            <Sidebar />
+            <Sidebar me={null} />
         </div>
     );
 }
