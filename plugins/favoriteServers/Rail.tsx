@@ -100,6 +100,16 @@ function clearDropHighlights() {
 function beginDrag(guildId: string, iconEl: HTMLElement, startX: number, startY: number, onClickFallback: () => void) {
     let dragging = false;
 
+    // 單一收尾路徑:移除監聽、清掉浮動預覽/高亮、歸還模組級狀態
+    function cleanup() {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        document.removeEventListener("pointercancel", onCancel);
+        removePreview();
+        clearDropHighlights();
+        dragGuildId = null;
+    }
+
     function onMove(e: PointerEvent) {
         if (!dragging) {
             if (Math.hypot(e.clientX - startX, e.clientY - startY) < DRAG_THRESHOLD) return;
@@ -108,39 +118,41 @@ function beginDrag(guildId: string, iconEl: HTMLElement, startX: number, startY:
             makePreview(iconEl, e.clientX, e.clientY);
         }
         movePreview(e.clientX, e.clientY);
-        // 依游標下的元素設定放置高亮
+        // 依游標下的元素設定放置高亮(預覽的 pointer-events:none 由 CSS 處理,不擋 elementFromPoint)
         clearDropHighlights();
-        dragPreview!.style.pointerEvents = "none";
         const under = document.elementFromPoint(e.clientX, e.clientY);
         const item = under?.closest(".vc-favsrv-item, .vc-favsrv-folder-head, .vc-favsrv-slot") as HTMLElement | null;
         if (item) item.classList.add(item.classList.contains("vc-favsrv-slot") ? "vc-favsrv-slot-active" : "vc-favsrv-dropinto");
     }
 
     function onUp(e: PointerEvent) {
-        document.removeEventListener("pointermove", onMove);
-        document.removeEventListener("pointerup", onUp);
-        removePreview();
-        clearDropHighlights();
-        if (!dragging) { onClickFallback(); dragGuildId = null; return; }
-        // 找放置目標
+        // 未超過門檻:視為點擊,觸發導航
+        if (!dragging) { cleanup(); onClickFallback(); return; }
+        // 找放置目標(於 cleanup 移除預覽前先讀取)
         const under = document.elementFromPoint(e.clientX, e.clientY);
         const target = under?.closest("[data-favsrv-drop]") as HTMLElement | null;
-        if (target && dragGuildId) {
-            const kind = target.getAttribute("data-favsrv-drop");
-            const id = target.getAttribute("data-favsrv-id") ?? "";
-            if (kind === "slot") reorderItem(dragGuildId, id);
-            else if (kind === "folder") addGuildToFolder(dragGuildId, id);
-            else if (kind === "guild" && id !== dragGuildId) {
-                const fid = target.getAttribute("data-favsrv-folder");
-                if (fid) addGuildToFolder(dragGuildId, fid);
-                else createFolderFrom(dragGuildId, id);
-            }
+        const dragged = dragGuildId;
+        cleanup();
+        if (!target || !dragged) return;
+        const kind = target.getAttribute("data-favsrv-drop");
+        const id = target.getAttribute("data-favsrv-id") ?? "";
+        if (kind === "slot") reorderItem(dragged, id);
+        else if (kind === "folder") addGuildToFolder(dragged, id);
+        else if (kind === "guild" && id !== dragged) {
+            const fid = target.getAttribute("data-favsrv-folder");
+            if (fid) addGuildToFolder(dragged, fid);
+            else createFolderFrom(dragged, id);
         }
-        dragGuildId = null;
+    }
+
+    // 指標被系統取消(失焦、觸控中斷等):純收尾,不放置
+    function onCancel() {
+        cleanup();
     }
 
     document.addEventListener("pointermove", onMove);
     document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onCancel);
 }
 
 function GuildIcon({ guildId, inFolder, folderId }: { guildId: string; inFolder?: boolean; folderId?: string; }) {
