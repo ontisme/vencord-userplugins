@@ -62,26 +62,22 @@ export function trustColor(trust: string): string {
 export function statusDotClass(f: {
     rawState: "online" | "active" | "offline";
     status: string;
-    lastLocation: string | null;
 }): string {
     const status = f.status;
-    // state === active:同色空心描邊圈
+    // rawState offline -> 灰實心
+    if (f.rawState === "offline") return "offline";
+    // rawState active(app 在線但未進遊戲):同色空心描邊圈
     if (f.rawState === "active") {
         if (status === "join me") return "active-joinme";
         if (status === "ask me") return "active-askme";
         if (status === "busy") return "active-busy";
         return "active";
     }
-    // location === offline -> 灰實心
-    if (f.lastLocation === "offline") return "offline";
-    // rawState offline -> 灰
-    if (f.rawState === "offline") return "offline";
-    // 以下為 online:依 status 給實心色
-    if (status === "active") return "online";  // active status = 綠實心
+    // rawState online(在遊戲中):依 status 給實心色
     if (status === "join me") return "joinme";
     if (status === "ask me") return "askme";
     if (status === "busy") return "busy";
-    return "online"; // online 但 status 缺失,綠實心
+    return "online"; // active status 或缺失 -> 綠實心
 }
 
 // 側欄位置/狀態顯示文字(對齊 VRCX):location 為 VRChat API 原值,worldName 由前端可選補上。

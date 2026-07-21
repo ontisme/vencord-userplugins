@@ -280,30 +280,36 @@ export async function getLiveFriends(): Promise<{ me: Friend | null; groups: Fri
     if (online == null || offline == null) return null;
 
     const trustFromDb = readTrustMap(db);
-    // online 與 active(在私人世界/離開視窗但在線)皆視為在線;其餘(含 state 缺失)視為離線
-    function friendState(u: ApiFriend): Friend["state"] {
-        return u.state === "online" || u.state === "active" ? "online" : "offline";
-    }
-    const rawState = (u: ApiFriend): Friend["rawState"] =>
-        u.state === "online" ? "online" : u.state === "active" ? "active" : "offline";
-    const toFriend = (u: ApiFriend): Friend => ({
-        userId: u.id,
-        displayName: u.displayName,
-        trustLevel: trustFromDb.get(u.id) ?? "",
-        friendNumber: 0,
-        rawState: rawState(u),
-        state: friendState(u),
-        status: u.status ?? "",
-        statusDescription: u.statusDescription ?? "",
-        lastLocation: u.location ?? null,
-        lastWorld: null,
-        lastSeen: null,
-        thumbnail: u.currentAvatarThumbnailImageUrl ?? u.userIcon ?? u.profilePicOverride ?? null
-    });
+    // VRChat API 的 state 欄位常為空,不可靠。改以「來自哪個端點」判定在線:
+    // offline=false 端點來的都在線;其中 location 為 offline/空 = active(app 在線但未進遊戲),
+    // 有真實 world/private = online(在遊戲中);offline=true 端點來的 = offline。
+    const rawStateFor = (u: ApiFriend, fromOnline: boolean): Friend["rawState"] => {
+        if (!fromOnline) return "offline";
+        const loc = u.location ?? "";
+        return loc === "" || loc === "offline" ? "active" : "online";
+    };
+    const toFriend = (u: ApiFriend, fromOnline: boolean): Friend => {
+        const rs = rawStateFor(u, fromOnline);
+        return {
+            userId: u.id,
+            displayName: u.displayName,
+            trustLevel: trustFromDb.get(u.id) ?? "",
+            friendNumber: 0,
+            rawState: rs,
+            state: rs === "offline" ? "offline" : "online",
+            status: u.status ?? "",
+            statusDescription: u.statusDescription ?? "",
+            lastLocation: u.location ?? null,
+            lastWorld: null,
+            lastSeen: null,
+            thumbnail: u.currentAvatarThumbnailImageUrl ?? u.userIcon ?? u.profilePicOverride ?? null
+        };
+    };
 
-    const onlineList = online.filter(u => u.state !== "active").map(toFriend);
-    const activeList = online.filter(u => u.state === "active").map(toFriend);
-    const offlineList = offline.map(toFriend);
+    const allOnline = online.map(u => toFriend(u, true));
+    const onlineList = allOnline.filter(f => f.rawState === "online");
+    const activeList = allOnline.filter(f => f.rawState === "active");
+    const offlineList = offline.map(u => toFriend(u, false));
 
     // FAVORITES 收藏分組(按需拉一次)
     const favGroups = await fetchFavoriteFriends(deps);
