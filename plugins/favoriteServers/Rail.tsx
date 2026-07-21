@@ -64,8 +64,84 @@ function guildInitial(name: string): string {
     return name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "?";
 }
 
-// 拖曳資料在模組內共享(HTML5 DnD 的 dataTransfer 在 dragenter 讀不到值)
+// Pointer 拖放(不用 HTML5 drag,避免 img 原生拖曳干擾、跨元素 dataTransfer 問題)。
+// 按住移動超過門檻才進入拖曳,期間顯示浮動預覽,放開時以 elementFromPoint 找目標。
+const DRAG_THRESHOLD = 6;
 let dragGuildId: string | null = null;
+let dragPreview: HTMLElement | null = null;
+
+function removePreview() {
+    dragPreview?.remove();
+    dragPreview = null;
+}
+
+// 在游標處建立浮動預覽(複製被拖曳圖示外觀)
+function makePreview(iconEl: HTMLElement, x: number, y: number) {
+    removePreview();
+    const el = iconEl.cloneNode(true) as HTMLElement;
+    el.className = "vc-favsrv-drag-preview";
+    el.style.left = x + "px";
+    el.style.top = y + "px";
+    document.body.appendChild(el);
+    dragPreview = el;
+}
+
+function movePreview(x: number, y: number) {
+    if (dragPreview) { dragPreview.style.left = x + "px"; dragPreview.style.top = y + "px"; }
+}
+
+// 清掉所有放置高亮
+function clearDropHighlights() {
+    document.querySelectorAll(".vc-favsrv-dropinto, .vc-favsrv-slot-active")
+        .forEach(el => el.classList.remove("vc-favsrv-dropinto", "vc-favsrv-slot-active"));
+}
+
+// 啟動一次 pointer 拖曳(在 GuildIcon 的 pointerdown 呼叫)
+function beginDrag(guildId: string, iconEl: HTMLElement, startX: number, startY: number, onClickFallback: () => void) {
+    let dragging = false;
+
+    function onMove(e: PointerEvent) {
+        if (!dragging) {
+            if (Math.hypot(e.clientX - startX, e.clientY - startY) < DRAG_THRESHOLD) return;
+            dragging = true;
+            dragGuildId = guildId;
+            makePreview(iconEl, e.clientX, e.clientY);
+        }
+        movePreview(e.clientX, e.clientY);
+        // 依游標下的元素設定放置高亮
+        clearDropHighlights();
+        dragPreview!.style.pointerEvents = "none";
+        const under = document.elementFromPoint(e.clientX, e.clientY);
+        const item = under?.closest(".vc-favsrv-item, .vc-favsrv-folder-head, .vc-favsrv-slot") as HTMLElement | null;
+        if (item) item.classList.add(item.classList.contains("vc-favsrv-slot") ? "vc-favsrv-slot-active" : "vc-favsrv-dropinto");
+    }
+
+    function onUp(e: PointerEvent) {
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+        removePreview();
+        clearDropHighlights();
+        if (!dragging) { onClickFallback(); dragGuildId = null; return; }
+        // 找放置目標
+        const under = document.elementFromPoint(e.clientX, e.clientY);
+        const target = under?.closest("[data-favsrv-drop]") as HTMLElement | null;
+        if (target && dragGuildId) {
+            const kind = target.getAttribute("data-favsrv-drop");
+            const id = target.getAttribute("data-favsrv-id") ?? "";
+            if (kind === "slot") reorderItem(dragGuildId, id);
+            else if (kind === "folder") addGuildToFolder(dragGuildId, id);
+            else if (kind === "guild" && id !== dragGuildId) {
+                const fid = target.getAttribute("data-favsrv-folder");
+                if (fid) addGuildToFolder(dragGuildId, fid);
+                else createFolderFrom(dragGuildId, id);
+            }
+        }
+        dragGuildId = null;
+    }
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+}
 
 function GuildIcon({ guildId, inFolder, folderId }: { guildId: string; inFolder?: boolean; folderId?: string; }) {
     const guild = GuildStore.getGuild(guildId);
@@ -84,20 +160,14 @@ function GuildIcon({ guildId, inFolder, folderId }: { guildId: string; inFolder?
     return (
         <div
             className="vc-favsrv-item"
-            draggable
-            onClick={() => navigateToGuild(guildId)}
+            data-favsrv-drop="guild"
+            data-favsrv-id={guildId}
+            data-favsrv-folder={inFolder && folderId ? folderId : undefined}
             title={guild.name}
-            onDragStart={() => { dragGuildId = guildId; }}
-            onDragEnd={() => { dragGuildId = null; }}
-            onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("vc-favsrv-dropinto"); }}
-            onDragLeave={e => e.currentTarget.classList.remove("vc-favsrv-dropinto")}
-            onDrop={e => {
-                e.preventDefault();
-                e.currentTarget.classList.remove("vc-favsrv-dropinto");
-                if (!dragGuildId || dragGuildId === guildId) return;
-                if (inFolder && folderId) addGuildToFolder(dragGuildId, folderId);
-                else createFolderFrom(dragGuildId, guildId);
-                dragGuildId = null;
+            onPointerDown={e => {
+                if (e.button !== 0) return;
+                const iconEl = e.currentTarget.querySelector(".vc-favsrv-icon") as HTMLElement;
+                beginDrag(guildId, iconEl ?? e.currentTarget, e.clientX, e.clientY, () => navigateToGuild(guildId));
             }}
             onContextMenu={e => {
                 e.preventDefault();
@@ -140,16 +210,10 @@ function Folder({ folder }: { folder: Extract<RailItem, { type: "folder"; }>; })
         <div className="vc-favsrv-folder">
             <div
                 className="vc-favsrv-folder-head"
+                data-favsrv-drop="folder"
+                data-favsrv-id={folder.id}
                 style={{ background: folder.expanded ? "transparent" : `#${folder.color.toString(16).padStart(6, "0")}33` }}
                 onClick={() => toggleFolder(folder.id)}
-                onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("vc-favsrv-dropinto"); }}
-                onDragLeave={e => e.currentTarget.classList.remove("vc-favsrv-dropinto")}
-                onDrop={e => {
-                    e.preventDefault();
-                    e.currentTarget.classList.remove("vc-favsrv-dropinto");
-                    if (dragGuildId) addGuildToFolder(dragGuildId, folder.id);
-                    dragGuildId = null;
-                }}
                 onContextMenu={e => {
                     e.preventDefault();
                     ContextMenuApi.openContextMenu(e, () => (
@@ -207,19 +271,7 @@ function FolderOpenIcon() {
 }
 
 function ReorderSlot({ itemId }: { itemId: string; }) {
-    return (
-        <div
-            className="vc-favsrv-slot"
-            onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add("vc-favsrv-slot-active"); }}
-            onDragLeave={e => e.currentTarget.classList.remove("vc-favsrv-slot-active")}
-            onDrop={e => {
-                e.preventDefault();
-                e.currentTarget.classList.remove("vc-favsrv-slot-active");
-                if (dragGuildId) reorderItem(dragGuildId, itemId);
-                dragGuildId = null;
-            }}
-        />
-    );
+    return <div className="vc-favsrv-slot" data-favsrv-drop="slot" data-favsrv-id={itemId} />;
 }
 
 function RailInner() {
