@@ -10,11 +10,32 @@ import { existsSync } from "fs";
 import { join } from "path";
 
 import { type Db, openDb } from "./sqlite";
+import { type ApiFriend, apiAvailable, type FavoriteGroup, fetchFavoriteFriends, fetchFriends } from "./vrchatApi";
 
 // VRChat 頭像與縮圖 CDN;需重啟 Vesktop 生效
 CspPolicies["api.vrchat.cloud"] = ["img-src"];
 
 const DB_PATH = join(process.env.APPDATA ?? "", "VRCX", "VRCX.sqlite3");
+
+// 讀 VRCX cookies 表(供 vrchatApi 復用登入 cookie);唯讀、單筆 default。
+// 可傳入已開啟的 db 共用,避免重複讀取整個 sqlite 檔。
+function readCookieRaw(db: Db): string | null {
+    const t = db.tables["cookies"];
+    if (!t) return null;
+    for (const [, r] of db.walkTable(t)) {
+        if (s(r[0]) === "default") return s(r[1]) || null;
+    }
+    return null;
+}
+
+// 開一次 db,自行處理錯誤;失敗回 null
+function openDbSafe(): Db | null {
+    try {
+        return openDb(DB_PATH);
+    } catch {
+        return null;
+    }
+}
 
 export type FeedType = "gps" | "online" | "offline" | "status" | "avatar" | "bio";
 
@@ -188,4 +209,77 @@ export function getFriends(): Friend[] {
         }
     }
     return friends;
+}
+
+export interface FriendGroup {
+    key: string;   // favorites:<name> / online / active / offline
+    title: string;
+    friends: Friend[];
+}
+
+// 按需:用 VRChat API 拉即時好友(頭像/狀態/location)+ FAVORITES 分組。
+// API 不可用(無 cookie / 過期 / rate limit)時回 null,前端降級用 getFriends()。
+export async function getLiveFriends(): Promise<{ me: Friend | null; groups: FriendGroup[]; } | null> {
+    // 開一次 db:同一次拉取內復用同一份 cookie 與 trust 對照,避免每個 API 呼叫都重讀整個檔案
+    const db = openDbSafe();
+    if (!db) return null;
+    const cookieRaw = readCookieRaw(db);
+    const deps = { readCookieRaw: () => cookieRaw };
+    if (!apiAvailable(deps)) return null;
+
+    const [online, offline] = await Promise.all([
+        fetchFriends(deps, false),
+        fetchFriends(deps, true)
+    ]);
+    // 任一關鍵請求失敗(null:認證失效/限流)就整體降級,避免顯示不完整清單並誤標 usingApi
+    if (online == null || offline == null) return null;
+
+    const trustFromDb = readTrustMap(db);
+    // online 與 active(在私人世界/離開視窗但在線)皆視為在線;其餘(含 state 缺失)視為離線
+    function friendState(u: ApiFriend): Friend["state"] {
+        return u.state === "online" || u.state === "active" ? "online" : "offline";
+    }
+    const toFriend = (u: ApiFriend): Friend => ({
+        userId: u.id,
+        displayName: u.displayName,
+        trustLevel: trustFromDb.get(u.id) ?? "",
+        friendNumber: 0,
+        state: friendState(u),
+        lastLocation: u.location ?? null,
+        lastWorld: null,
+        lastSeen: null,
+        thumbnail: u.currentAvatarThumbnailImageUrl ?? u.userIcon ?? u.profilePicOverride ?? null
+    });
+
+    const onlineList = online.filter(u => u.state !== "active").map(toFriend);
+    const activeList = online.filter(u => u.state === "active").map(toFriend);
+    const offlineList = offline.map(toFriend);
+
+    // FAVORITES 收藏分組(按需拉一次)
+    const favGroups = await fetchFavoriteFriends(deps);
+    const byId = new Map<string, Friend>();
+    for (const f of [...onlineList, ...activeList, ...offlineList]) byId.set(f.userId, f);
+
+    const groups: FriendGroup[] = [];
+    if (favGroups) {
+        for (const g of favGroups) {
+            const members = g.userIds.map(id => byId.get(id)).filter((f): f is Friend => f != null);
+            if (members.length) groups.push({ key: `favorites:${g.name}`, title: g.displayName, friends: members });
+        }
+    }
+    groups.push({ key: "online", title: "ONLINE", friends: onlineList });
+    groups.push({ key: "active", title: "ACTIVE", friends: activeList });
+    groups.push({ key: "offline", title: "OFFLINE", friends: offlineList });
+
+    return { me: null, groups };
+}
+
+// 由 friend_log_current 建 userId -> trustLevel 對照(API 不含 trust)。共用已開啟的 db。
+function readTrustMap(db: Db): Map<string, string> {
+    const map = new Map<string, string>();
+    const prefix = findPrefix(db);
+    if (!prefix) return map;
+    const t = db.tables[prefix + "_friend_log_current"];
+    if (t) for (const [, r] of collect(db, t)) map.set(s(r[0]), s(r[2]));
+    return map;
 }

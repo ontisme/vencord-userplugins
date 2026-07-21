@@ -154,8 +154,8 @@
 }
 .vc-vrcx-side-head {
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 14px;
     padding-bottom: 10px;
     border-bottom: 1px solid #2a2a2f;
@@ -164,8 +164,21 @@
     font-size: 15px;
     font-weight: 700;
     color: #fff;
+    margin-right: auto;
 }
-.vc-vrcx-side-note { font-size: 11px; color: #8a8d93; }
+.vc-vrcx-reload {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #8a8d93;
+    cursor: pointer;
+}
+.vc-vrcx-reload:hover { background: #2b2b30; color: #cfd2d6; }
 
 .vc-vrcx-group { margin-bottom: 8px; }
 .vc-vrcx-group-title {

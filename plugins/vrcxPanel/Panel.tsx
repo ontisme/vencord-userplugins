@@ -8,8 +8,8 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import { useEffect, useMemo, useReducer, useState } from "@webpack/common";
 
 import {
-    type FeedEntry, type FeedType, type Friend, getFeed, getFilter, getFriends,
-    isAvailable, setFilter, startPolling, stopPolling, subscribe
+    type FeedEntry, type FeedType, type Friend, getFeed, getFilter, getGroups,
+    isAvailable, isUsingApi, reloadFriends, setFilter, start, stop, subscribe
 } from "./data";
 import { parseLocation, trustColor } from "./location";
 
@@ -153,7 +153,7 @@ function FriendRow({ friend }: { friend: Friend; }) {
         <div className="vc-vrcx-friend">
             <div className="vc-vrcx-friend-av">
                 <Avatar url={friend.thumbnail} name={friend.displayName} size={40} />
-                <span className={"vc-vrcx-status vc-vrcx-status-" + (friend.state === "online" ? "online" : friend.state === "offline" ? "offline" : "unknown")} />
+                <span className={"vc-vrcx-status vc-vrcx-status-" + friend.state} />
             </div>
             <div className="vc-vrcx-friend-text">
                 <span className="vc-vrcx-friend-name" style={{ color: trustColor(friend.trustLevel) }}>{friend.displayName}</span>
@@ -168,31 +168,31 @@ function FriendRow({ friend }: { friend: Friend; }) {
     );
 }
 
-function Sidebar({ me }: { me: Friend | null; }) {
-    const friends = getFriends();
-    const online = useMemo(() => friends.filter(f => f.state === "online").sort((a, b) => a.displayName.localeCompare(b.displayName)), [friends]);
-    const offline = useMemo(() => friends.filter(f => f.state !== "online").sort((a, b) => a.displayName.localeCompare(b.displayName)), [friends]);
+function Sidebar() {
+    const groups = getGroups();
+    const usingApi = isUsingApi();
+    const total = useMemo(() => groups.reduce((n, g) => n + g.friends.length, 0), [groups]);
+    const onlineCount = useMemo(
+        () => groups.filter(g => g.key === "online" || g.key === "active").reduce((n, g) => n + g.friends.length, 0),
+        [groups]
+    );
 
     return (
         <div className="vc-vrcx-sidebar">
             <div className="vc-vrcx-side-head">
-                <span className="vc-vrcx-side-tab vc-vrcx-side-tab-active">好友 ({online.length}/{friends.length})</span>
-                <span className="vc-vrcx-side-note">線上狀態為 VRCX 歷史推估</span>
+                <span className="vc-vrcx-side-tab vc-vrcx-side-tab-active">好友 ({onlineCount}/{total})</span>
+                <button className="vc-vrcx-reload" title={usingApi ? "重新整理" : "資料庫推估,點擊嘗試連線"} onClick={() => reloadFriends()}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17.65 6.35A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h7V4l-2.35 2.35z" />
+                    </svg>
+                </button>
             </div>
-            {me && (
-                <div className="vc-vrcx-group">
-                    <div className="vc-vrcx-group-title">ME</div>
-                    <FriendRow friend={me} />
+            {groups.map(g => (
+                <div className="vc-vrcx-group" key={g.key}>
+                    <div className="vc-vrcx-group-title">{g.title} — {g.friends.length}</div>
+                    {g.friends.map(f => <FriendRow key={g.key + f.userId} friend={f} />)}
                 </div>
-            )}
-            <div className="vc-vrcx-group">
-                <div className="vc-vrcx-group-title">ONLINE — {online.length}</div>
-                {online.map(f => <FriendRow key={f.userId} friend={f} />)}
-            </div>
-            <div className="vc-vrcx-group">
-                <div className="vc-vrcx-group-title">OFFLINE — {offline.length}</div>
-                {offline.map(f => <FriendRow key={f.userId} friend={f} />)}
-            </div>
+            ))}
         </div>
     );
 }
@@ -201,8 +201,8 @@ function PanelInner() {
     const [, force] = useReducer(x => x + 1, 0);
     useEffect(() => {
         const unsub = subscribe(force);
-        startPolling();
-        return () => { unsub(); stopPolling(); };
+        start();
+        return () => { unsub(); stop(); };
     }, []);
 
     if (!isAvailable() && getFeed().length === 0) {
@@ -216,7 +216,7 @@ function PanelInner() {
     return (
         <div className="vc-vrcx-panel">
             <FeedTable />
-            <Sidebar me={null} />
+            <Sidebar />
         </div>
     );
 }
